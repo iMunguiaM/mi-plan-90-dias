@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>90 Días | Plan de Fe y Dirección</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'ios-bg': '#F2F2F7',
+                        'ios-card': 'rgba(255, 255, 255, 0.8)',
+                        'ios-blue': '#007AFF',
+                        'ios-gold': '#AF9500',
+                        'ios-text': '#1C1C1E',
+                        'ios-secondary': '#8E8E93',
+                        'ios-green': '#34C759'
+                    },
+                    borderRadius: {
+                        'ios': '20px',
+                        'ios-lg': '28px'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #F2F2F7;
+            color: #1C1C1E;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px) saturate(190%);
+            -webkit-backdrop-filter: blur(25px) saturate(190%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-active .modal-content {
+            transform: translateY(0);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+
+        .ios-checkbox {
+            appearance: none;
+            width: 26px;
+            height: 26px;
+            border: 2px solid #C7C7CC;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .ios-checkbox:checked {
+            background-color: #34C759;
+            border-color: #34C759;
+        }
+
+        .ios-checkbox:checked::after {
+            content: "✓";
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 10px; }
+
+        .day-card {
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .day-card:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24 lg:pb-0">
+
+    <div class="flex flex-col lg:flex-row min-h-screen">
+        <!-- Barra de Navegación Lateral -->
+        <nav class="lg:w-72 glass lg:h-screen fixed bottom-0 w-full lg:static flex lg:flex-col justify-between items-center lg:items-stretch p-6 z-40 shadow-2xl lg:shadow-none">
+            <div class="w-full">
+                <div class="hidden lg:block mb-8 px-2">
+                    <h1 class="text-2xl font-bold tracking-tight">90 Días</h1>
+                    <p class="text-ios-secondary text-xs font-semibold uppercase tracking-wider">Plan Maestro de Fe</p>
+                </div>
+                
+                <div class="flex lg:flex-col w-full justify-around lg:justify-start gap-3">
+                    <button onclick="selectMonth('mes1')" id="nav-mes1" class="flex flex-col lg:flex-row items-center gap-3 p-3 rounded-2xl transition-all duration-200 hover:bg-white/50 group">
+                        <span class="text-2xl">☀️</span>
+                        <div class="text-left hidden lg:block">
+                            <p class="text-sm font-bold">Mes 1</p>
+                            <p class="text-[10px] text-ios-secondary uppercase">Evangelios</p>
+                        </div>
+                        <span class="lg:hidden text-[10px] font-bold">Mes 1</span>
+                    </button>
+                    <button onclick="selectMonth('mes2')" id="nav-mes2" class="flex flex-col lg:flex-row items-center gap-3 p-3 rounded-2xl transition-all duration-200 hover:bg-white/50 group">
+                        <span class="text-2xl">🌱</span>
+                        <div class="text-left hidden lg:block">
+                            <p class="text-sm font-bold">Mes 2</p>
+                            <p class="text-[10px] text-ios-secondary uppercase">Hechos y Pablo</p>
+                        </div>
+                        <span class="lg:hidden text-[10px] font-bold">Mes 2</span>
+                    </button>
+                    <button onclick="selectMonth('mes3')" id="nav-mes3" class="flex flex-col lg:flex-row items-center gap-3 p-3 rounded-2xl transition-all duration-200 hover:bg-white/50 group">
+                        <span class="text-2xl">🏆</span>
+                        <div class="text-left hidden lg:block">
+                            <p class="text-sm font-bold">Mes 3</p>
+                            <p class="text-[10px] text-ios-secondary uppercase">Sabiduría y Perseverancia</p>
+                        </div>
+                        <span class="lg:hidden text-[10px] font-bold">Mes 3</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progreso Global -->
+            <div class="hidden lg:block bg-white/40 p-5 rounded-ios-lg border border-white/60">
+                <div class="flex justify-between items-end mb-3">
+                    <span class="text-[10px] font-black text-ios-secondary uppercase">Progreso Global</span>
+                    <span id="total-percent" class="text-lg font-bold text-ios-blue">0%</span>
+                </div>
+                <div class="h-1.5 w-full bg-gray-200/50 rounded-full overflow-hidden">
+                    <div id="total-bar" class="h-full bg-ios-blue transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-1 lg:h-screen overflow-y-auto p-4 md:p-10">
+            <!-- Estadísticas -->
+            <div class="flex flex-col md:flex-row gap-6 mb-12">
+                <div class="flex-1 glass p-8 rounded-ios-lg shadow-sm flex flex-col justify-center">
+                    <h2 class="text-xs font-black text-ios-secondary uppercase tracking-[0.2em] mb-6">Estado de la Jornada</h2>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div class="flex flex-col">
+                            <span class="text-3xl font-bold" id="stat-days">0/90</span>
+                            <span class="text-[10px] font-bold text-ios-secondary uppercase">Días Completos</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-3xl font-bold" id="stat-bible">0</span>
+                            <span class="text-[10px] font-bold text-ios-secondary uppercase">Cap. Leídos</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-3xl font-bold" id="stat-prayers">0</span>
+                            <span class="text-[10px] font-bold text-ios-secondary uppercase">Oraciones</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-3xl font-bold text-ios-gold" id="stat-fasts">0/6</span>
+                            <span class="text-[10px] font-bold text-ios-secondary uppercase">Ayunos Totales</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-72 glass p-6 rounded-ios-lg flex flex-col items-center justify-center min-h-[220px]">
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Días -->
+            <section id="main-feed" class="pb-10">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                    <div>
+                        <h3 id="current-month-title" class="text-3xl font-bold tracking-tight">Cargando...</h3>
+                        <p id="current-month-desc" class="text-ios-secondary mt-1 font-medium"></p>
+                    </div>
+                    <div class="flex bg-gray-200/50 p-1 rounded-full w-fit" id="week-tabs"></div>
+                </div>
+                <div id="days-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL DE DETALLE -->
+    <div id="ios-modal" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center p-0 md:p-6 overflow-hidden">
+        <div class="modal-overlay absolute inset-0" onclick="closeModal()"></div>
+        <div class="modal-content glass w-full max-w-3xl h-[90vh] md:h-auto md:max-h-[85vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden">
+            <div class="p-6 border-b border-gray-200/50 flex justify-between items-center shrink-0">
+                <div id="modal-header-info">
+                    <span class="text-[10px] font-black text-ios-secondary uppercase tracking-widest" id="modal-day-label">Día 1</span>
+                    <h4 class="text-xl font-bold" id="modal-title">Lectura y Oración</h4>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 bg-gray-200/80 rounded-full flex items-center justify-center text-xl font-medium">×</button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-8 pb-10">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div id="modal-check-bible" class="bg-white/40 p-4 rounded-ios border border-white/40"></div>
+                    <div id="modal-check-egw" class="bg-white/40 p-4 rounded-ios border border-white/40"></div>
+                    <div id="modal-check-pm" class="bg-white/40 p-4 rounded-ios border border-white/40"></div>
+                    <div id="modal-check-pt" class="bg-white/40 p-4 rounded-ios border border-white/40"></div>
+                </div>
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <h5 class="text-sm font-black text-ios-blue uppercase tracking-widest flex items-center">🌅 Oración Mañana</h5>
+                        <div class="p-5 bg-ios-blue/5 rounded-ios-lg border border-ios-blue/10">
+                            <p id="modal-prayer-m" class="text-sm leading-relaxed font-medium text-gray-800"></p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <h5 class="text-sm font-black text-ios-gold uppercase tracking-widest flex items-center">🌇 Oración Tarde</h5>
+                        <div class="p-5 bg-ios-gold/5 rounded-ios-lg border border-ios-gold/10">
+                            <p id="modal-prayer-t" class="text-sm leading-relaxed font-medium text-gray-800"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 glass px-6 py-3 rounded-full text-sm font-bold shadow-xl opacity-0 transition-all z-[110] pointer-events-none border-ios-blue/20">
+        ✨ Progreso guardado
+    </div>
+
+    <script>
+        const generatePlan = () => {
+            const plan = [];
+            const motivesM = [
+                "Entrega formalmente el control del negocio a Dios; pide que Él sea el CEO de tu empresa.",
+                "Ora por una victoria real sobre la ansiedad que producen las ventas bajas, reclamando la paz de Cristo.",
+                "Clama por fe para creer en milagros financieros que rompan esquemas humanos.",
+                "Pide valor para compartir tu fe con socios o empleados sin temor al juicio.",
+                "Ora por calma sobrenatural mientras enfrentas la 'tormenta' económica, confiando en que Jesús duerme en tu barca.",
+                "Comprométete a mantener principios éticos innegociables, aunque parezca que 'perderás' dinero.",
+                "Pide a Dios que 'limpie el templo' de tu negocio de cualquier práctica o motivación deshonesta."
+            ];
+            const motivesT = [
+                "Ruega que la presencia de Dios llene cada rincón de tu oficina o local, ahuyentando el temor.",
+                "Pide sabiduría para aplicar los principios éticos del Sermón del Monte en tus negociaciones.",
+                "Pide a Dios que toque el corazón de tus clientes actuales para que mantengan su lealtad.",
+                "Ruega por protección contra críticas externas o estrategias malintencionadas de la competencia.",
+                "Pide discernimiento para identificar nuevas oportunidades de mercado que otros no están viendo.",
+                "Ora por la paz y unidad de tu familia; que la crisis no divida tu hogar.",
+                "Cultiva humildad para aceptar una dirección de Dios que quizás no esperabas para tu empresa."
+            ];
+
+            const dtgTitles = {
+                1: "Dios con nosotros", 2: "El pueblo elegido", 3: "El cumplimiento del tiempo", 4: "Nace un Salvador",
+                5: "La Visitación", 6: "El astro de Jacob", 7: "Como un niño", 8: "Su bautismo", 9: "La tentación",
+                10: "La victoria", 11: "Hallamos al Mesías", 12: "Bodas de Caná", 13: "En su templo", 14: "Nicodemo",
+                15: "El debe crecer", 16: "Pozo de Jacob", 17: "Si no viereis señales", 18: "Estanque de Betesda",
+                19: "Muerte de Juan", 20: "Reino de Dios", 21: "Sanidad de un paralítico", 22: "Llamamiento de Mateo",
+                23: "El sábado", 24: "Ordenación de los doce", 25: "El sermón del monte", 26: "El centurión",
+                27: "¿Quiénes son mis hermanos?", 28: "Getsemaní", 29: "Ante Anás y Caifás", 30: "Judas"
+            };
+
+            const hapTitles = {
+                31: "Pentecostés", 32: "El poder del nombre", 33: "Siete diáconos", 34: "El primer mártir",
+                35: "Evangelio en Samaria", 36: "De perseguidor a discípulo", 37: "Buscador de la verdad", 38: "Librado de la cárcel",
+                39: "El mensaje en Antioquía", 40: "Heraldo del Evangelio", 41: "Predicando entre gentiles", 42: "Judíos y gentiles",
+                43: "Exaltación de la cruz", 44: "En las regiones lejanas", 45: "Tesalónica", 46: "Berea y Atenas",
+                47: "Corinto", 48: "Cartas a los Tesalonicenses", 49: "Apolos en Corinto", 50: "Éfeso",
+                51: "Días de lucha", 52: "Advertencia y ruego", 53: "Llamamiento a mayor altura", 54: "Mensaje escuchado",
+                55: "Una iglesia liberal", 56: "Labores posteriores", 57: "El propósito de Dios", 58: "Pablo preso",
+                59: "Juicio en Cesarea", 60: "Apelación a César"
+            };
+
+            for(let i=1; i<=90; i++) {
+                const isFasting = (i >= 14 && i <= 15) || (i >= 28 && i <= 29) || (i >= 42 && i <= 43) || (i >= 56 && i <= 57) || (i >= 70 && i <= 71) || (i >= 84 && i <= 85);
+                let bibleReading = "";
+                let egwTitle = "";
+                let egwBook = "";
+
+                // Libros de la biblia detallados
+                if (i <= 9) bibleReading = `Mateo ${((i-1)*3)+1}-${Math.min(i*3, 28)}`;
+                else if (i === 10) bibleReading = `Mateo 28, Marcos 1-2`;
+                else if (i <= 14) bibleReading = `Marcos ${((i-11)*3)+3}-${Math.min((i-11)*3+5, 16)}`;
+                else if (i === 15) bibleReading = `Marcos 15-16, Lucas 1`;
+                else if (i <= 22) bibleReading = `Lucas ${((i-16)*3)+2}-${Math.min((i-16)*3+4, 24)}`;
+                else if (i === 23) bibleReading = `Lucas 23-24, Juan 1`;
+                else if (i <= 29) bibleReading = `Juan ${((i-24)*3)+2}-${Math.min((i-24)*3+4, 21)}`;
+                else if (i === 30) bibleReading = `Juan 20-21, Hechos 1`;
+                else if (i <= 39) bibleReading = `Hechos ${((i-31)*3)+2}-${Math.min((i-31)*3+4, 28)}`;
+                else if (i <= 44) bibleReading = `Romanos ${((i-40)*3)+1}-${Math.min((i-40)*3+3, 16)}`;
+                else if (i === 45) bibleReading = `Romanos 16, 1 Cor. 1-2`;
+                else if (i <= 49) bibleReading = `1 Corintios ${((i-46)*3)+3}-${Math.min((i-46)*3+5, 16)}`;
+                else if (i === 50) bibleReading = `1 Cor. 15-16, 2 Cor. 1`;
+                else if (i <= 54) bibleReading = `2 Corintios ${((i-51)*3)+2}-${Math.min((i-51)*3+4, 13)}`;
+                else if (i <= 56) bibleReading = `Gálatas ${((i-55)*3)+1}-${Math.min((i-55)*3+3, 6)}`;
+                else if (i === 57) bibleReading = `Efesios 1-3`;
+                else if (i === 58) bibleReading = `Efesios 4-6, Fil. 1`;
+                else if (i === 59) bibleReading = `Filipenses 2-4`;
+                else if (i === 60) bibleReading = `Colosenses 1-3`;
+                else bibleReading = `Sabiduría y Salmos`;
+
+                if (i <= 30) { egwBook = "DTG"; egwTitle = dtgTitles[i] || "Capítulo Especial"; }
+                else if (i <= 60) { egwBook = "HAp"; egwTitle = hapTitles[i] || "Capítulo Especial"; }
+                else { egwBook = "ED/CV"; egwTitle = "Sabiduría Divina"; }
+
+                plan.push({
+                    id: `d${i}`,
+                    number: i,
+                    month: i <= 30 ? 1 : (i <= 60 ? 2 : 3),
+                    week: Math.ceil(i/7),
+                    isFasting: isFasting,
+                    bible: bibleReading,
+                    egw: `${egwBook} Cap. ${i}: ${egwTitle}`,
+                    m: motivesM[(i-1) % 7],
+                    t: motivesT[(i-1) % 7]
+                });
+            }
+            return plan;
+        };
+
+        const planData = generatePlan();
+        let state = JSON.parse(localStorage.getItem('90dias_fe_v4')) || {};
+        let currentMonth = 1;
+        let currentWeek = 1;
+        let chartInstance = null;
+
+        const saveProgress = (dayId, task, value) => {
+            if (!state[dayId]) state[dayId] = {};
+            state[dayId][task] = value;
+            localStorage.setItem('90dias_fe_v4', JSON.stringify(state));
+            updateStats();
+            refreshCurrentView();
+            showToast();
+        };
+
+        const showToast = () => {
+            const t = document.getElementById('toast');
+            t.style.opacity = '1';
+            setTimeout(() => { t.style.opacity = '0'; }, 1500);
+        };
+
+        const updateStats = () => {
+            let completed = 0, fullDays = 0, bibleCaps = 0, prayers = 0;
+            Object.keys(state).forEach(id => {
+                const day = state[id];
+                let count = 0;
+                if(day.bible) { completed++; bibleCaps += 3; count++; }
+                if(day.egw) { completed++; count++; }
+                if(day.pm) { completed++; prayers++; count++; }
+                if(day.pt) { completed++; prayers++; count++; }
+                if(count === 4) fullDays++;
+            });
+            const percent = Math.round((completed / (90 * 4)) * 100);
+            document.getElementById('total-percent').innerText = `${percent}%`;
+            document.getElementById('total-bar').style.width = `${percent}%`;
+            document.getElementById('stat-days').innerText = `${fullDays}/90`;
+            document.getElementById('stat-bible').innerText = bibleCaps;
+            document.getElementById('stat-prayers').innerText = prayers;
+            document.getElementById('stat-fasts').innerText = `${Math.floor(fullDays/15)}/6`;
+            renderChart(percent);
+        };
+
+        const renderChart = (percent) => {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: { datasets: [{ data: [percent, 100 - percent], backgroundColor: ['#007AFF', '#E5E5EA'], borderWidth: 0 }] },
+                options: { cutout: '82%', responsive: true, maintainAspectRatio: false, plugins: { tooltip: { enabled: false } } }
+            });
+        };
+
+        const selectMonth = (id) => {
+            currentMonth = parseInt(id.replace('mes', ''));
+            const titles = ["", "Mes 1: Evangelios", "Mes 2: Hechos y Pablo", "Mes 3: Sabiduría"];
+            document.getElementById('current-month-title').innerText = titles[currentMonth];
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('bg-white', 'shadow-md', 'text-ios-blue'));
+            document.getElementById(`nav-mes${currentMonth}`).classList.add('bg-white', 'shadow-md', 'text-ios-blue');
+            renderWeeks();
+            selectWeek((currentMonth - 1) * 4 + 1);
+        };
+
+        const renderWeeks = () => {
+            const container = document.getElementById('week-tabs');
+            container.innerHTML = '';
+            const start = (currentMonth - 1) * 4 + 1;
+            for(let i=start; i < Math.min(start+4, 14); i++) {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-1.5 rounded-full text-xs font-bold transition-all ${currentWeek === i ? 'bg-white shadow-sm text-ios-blue' : 'text-ios-secondary'}`;
+                btn.innerText = `S${i}`;
+                btn.onclick = () => selectWeek(i);
+                container.appendChild(btn);
+            }
+        };
+
+        const selectWeek = (num) => {
+            currentWeek = num;
+            renderWeeks();
+            const weekDays = planData.filter(d => d.week === num);
+            const grid = document.getElementById('days-grid');
+            grid.innerHTML = '';
+            weekDays.forEach(day => {
+                const dayState = state[day.id] || {};
+                const completedCount = Object.values(dayState).filter(v => v).length;
+                const isAyuno = day.isFasting;
+                const card = document.createElement('div');
+                card.className = `day-card glass p-6 rounded-ios-lg cursor-pointer flex flex-col gap-4 border-2 ${isAyuno ? 'border-ios-gold/20 bg-ios-gold/5' : 'border-transparent'}`;
+                card.onclick = () => openModal(day.id);
+                card.innerHTML = `<div class="flex justify-between items-start"><div><span class="text-[10px] font-black text-ios-secondary uppercase tracking-tighter">Día ${day.number}</span><h4 class="text-lg font-bold truncate">${isAyuno ? '✨ Ayuno Especial' : 'Plan Diario'}</h4></div><div class="w-8 h-8 rounded-full border-2 border-gray-100 flex items-center justify-center text-[10px] font-bold ${completedCount === 4 ? 'bg-ios-green border-ios-green text-white' : ''}">${completedCount}/4</div></div><div class="space-y-2"><div class="flex items-start gap-2"><span class="text-sm">📖</span><div class="flex flex-col"><span class="text-xs font-bold text-ios-text">${day.bible}</span><span class="text-[10px] text-ios-secondary uppercase">Biblia</span></div></div><div class="flex items-start gap-2"><span class="text-sm">📚</span><div class="flex flex-col"><span class="text-xs font-bold text-ios-text line-clamp-1">${day.egw}</span><span class="text-[10px] text-ios-secondary uppercase">EGW</span></div></div></div>`;
+                grid.appendChild(card);
+            });
+        };
+
+        const refreshCurrentView = () => selectWeek(currentWeek);
+
+        const openModal = (dayId) => {
+            const day = planData.find(d => d.id === dayId);
+            const dayState = state[dayId] || {};
+            const modal = document.getElementById('ios-modal');
+            document.getElementById('modal-day-label').innerText = `Día ${day.number}`;
+            document.getElementById('modal-title').innerText = day.isFasting ? '✨ Jornada de Ayuno' : 'Lectura y Oración';
+            document.getElementById('modal-prayer-m').innerText = day.m;
+            document.getElementById('modal-prayer-t').innerText = day.t;
+            renderModalCheck('modal-check-bible', dayId, 'bible', day.bible, dayState.bible);
+            renderModalCheck('modal-check-egw', dayId, 'egw', day.egw, dayState.egw);
+            renderModalCheck('modal-check-pm', dayId, 'pm', 'Oración Mañana', dayState.pm);
+            renderModalCheck('modal-check-pt', dayId, 'pt', 'Oración Tarde', dayState.pt);
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('modal-active'), 10);
+        };
+
+        const renderModalCheck = (containerId, dayId, task, label, checked) => {
+            document.getElementById(containerId).innerHTML = `<label class="flex items-center gap-4 cursor-pointer"><input type="checkbox" class="ios-checkbox" ${checked ? 'checked' : ''} onchange="saveProgress('${dayId}', '${task}', this.checked)"><div class="flex flex-col"><span class="text-sm font-bold ${checked ? 'text-ios-secondary line-through' : ''}">${label}</span><span class="text-[10px] text-ios-secondary uppercase tracking-widest">${task}</span></div></label>`;
+        };
+
+        const closeModal = () => {
+            const modal = document.getElementById('ios-modal');
+            modal.classList.remove('modal-active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.onload = () => { selectMonth('mes1'); updateStats(); };
+    </script>
+</body>
+</html>
