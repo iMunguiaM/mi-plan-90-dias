@@ -632,11 +632,13 @@
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
-        // Apertura principal del Lector
-        async function openReader(ref, isBible = true, dayNum = 1) {
+        // Apertura principal del Lector Interno
+        async function openReader(ref, isBible = false, dayNum = 1) {
             const modal = document.getElementById('modal-bible');
             
             readerState.dayNum = dayNum;
+            readerState.isBible = isBible;
+            readerState.currentIndex = 0;
             
             let chapters = [];
             // Reconocimiento inteligente de capítulos múltiples o uno solo
@@ -654,7 +656,6 @@
             }
             
             readerState.chapters = chapters;
-            readerState.currentIndex = 0;
             
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('modal-active'), 10);
@@ -688,17 +689,19 @@
             const nextBtn = document.getElementById('reader-next-btn');
 
             navBar.classList.remove('hidden');
+            navBar.style.display = 'flex';
 
             if (readerState.chapters.length > 1) {
+                prevBtn.style.visibility = 'visible';
+                nextBtn.style.visibility = 'visible';
                 prevBtn.disabled = readerState.currentIndex === 0;
                 nextBtn.disabled = readerState.currentIndex === (readerState.chapters.length - 1);
-                prevBtn.style.opacity = prevBtn.disabled ? "0.3" : "1";
-                nextBtn.style.opacity = nextBtn.disabled ? "0.3" : "1";
             } else {
+                // Ocultar botones de navegación si solo hay 1 capítulo, pero manteniendo el texto de DÍA X centrado
+                prevBtn.style.visibility = 'hidden';
+                nextBtn.style.visibility = 'hidden';
                 prevBtn.disabled = true;
                 nextBtn.disabled = true;
-                prevBtn.style.opacity = "0.3";
-                nextBtn.style.opacity = "0.3";
             }
             
             skeleton.classList.remove('hidden');
@@ -822,7 +825,7 @@
                     const link = getBibleLink(ref);
                     actionHtml = `<a href="${link}" target="_blank" onclick="event.stopPropagation();" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="external-link" class="w-4 h-4 text-ios-blue"></i></a>`;
                 } else {
-                    actionHtml = `<button id="reader-btn-${dayId}-${task}" onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
+                    actionHtml = `<button id="reader-btn-${dayId}-${task}" onclick="event.stopPropagation(); openReader('${ref}', false, ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
                 }
             }
 
