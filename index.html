@@ -177,7 +177,6 @@
 
     <div class="flex flex-col lg:flex-row min-h-screen">
         
-        <!-- Sidebar Navigation (Adaptive) -->
         <nav id="sidebar" class="lg:w-72 glass lg:h-screen fixed bottom-0 w-full lg:static flex lg:flex-col justify-between items-center lg:items-stretch p-1 lg:p-6 z-40 shadow-2xl lg:shadow-none border-t lg:border-t-0 lg:border-r border-gray-200">
             <div class="w-full text-ios-text">
                 <div class="hidden lg:block mb-10 px-2 text-center lg:text-left text-left">
@@ -233,7 +232,6 @@
             </div>
         </nav>
 
-        <!-- Main Content Area -->
         <main class="flex-1 lg:h-screen overflow-y-auto p-3 md:p-10 pb-20 lg:pb-10">
             <div class="mb-4 lg:mb-8 text-center lg:text-left text-left">
                 <h2 id="welcome-name" class="text-2xl lg:text-3xl font-bold tracking-tight">Hola</h2>
@@ -243,7 +241,6 @@
                 </div>
             </div>
 
-            <!-- VISTA: HOY -->
             <section id="view-today" class="max-w-4xl mx-auto space-y-4 lg:space-y-8">
                 <div id="today-card-container"></div>
                 <div class="flex justify-center">
@@ -254,7 +251,6 @@
                 </div>
             </section>
 
-            <!-- VISTA: CRONOGRAMA -->
             <section id="view-calendar" class="hidden space-y-6 lg:space-y-8">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-4">
                     <h3 class="text-xl lg:text-2xl font-bold italic-none text-left">Cronograma de 90 Días</h3>
@@ -267,7 +263,6 @@
                 <div id="calendar-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5 text-left"></div>
             </section>
 
-            <!-- VISTA: ESTADO DEL PLAN -->
             <section id="view-status" class="hidden max-w-5xl mx-auto space-y-8 lg:space-y-10 text-ios-text">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
                     <div class="lg:col-span-1 glass p-5 lg:p-8 rounded-ios-lg text-center shadow-sm">
@@ -303,7 +298,6 @@
         </main>
     </div>
 
-    <!-- MODAL: LECTOR INTEGRADO (SOLO EGW) -->
     <div id="modal-bible" class="fixed inset-0 z-[200] hidden flex items-end md:items-center justify-center p-0 md:p-6 text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
         <div class="modal-content glass w-full max-w-3xl h-[94vh] md:h-[88vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden bg-ios-bg">
@@ -331,7 +325,6 @@
                     <div id="bible-actual-text"></div>
                 </div>
                 
-                <!-- Footer Navegación Estilo Apple (Fijo, sin flechas porque es solo 1 capítulo EGW por día) -->
                 <div id="reader-nav" class="shrink-0 bg-white/90 backdrop-blur-md border-t border-gray-200 p-3 lg:p-4 flex justify-center items-center absolute bottom-0 w-full z-10 hidden">
                     <span id="reader-day-indicator" class="text-xs lg:text-sm font-black text-ios-secondary uppercase tracking-widest text-center">Día 1</span>
                 </div>
@@ -339,7 +332,6 @@
         </div>
     </div>
 
-    <!-- MODAL: DETALLES DÍA -->
     <div id="modal-day" class="fixed inset-0 z-[100] hidden flex items-end md:items-center justify-center p-0 md:p-6 text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
         <div class="modal-content glass w-full max-w-3xl h-[90vh] md:h-auto md:max-h-[88vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden text-left">
@@ -372,7 +364,6 @@
         </div>
     </div>
 
-    <!-- MODAL: CONFIGURACIÓN -->
     <div id="modal-config" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 text-left text-left text-left text-left text-left text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
         <div class="glass w-full max-w-md p-5 lg:p-8 rounded-ios-lg shadow-2xl relative text-left">
@@ -407,7 +398,6 @@
         </div>
     </div>
 
-    <!-- SCRIPT ÚNICO Y ORDENADO PARA PREVENIR ERRORES -->
     <script>
         // 1. DATOS MAESTROS
         const bibleBookCodes = { "Mateo": "MAT", "Marcos": "MRK", "Lucas": "LUK", "Juan": "JHN", "Hechos": "ACT", "Romanos": "ROM", "1 Corintios": "1CO", "2 Corintios": "2CO", "Gálatas": "GAL", "Efesios": "EPH", "Filipenses": "PHP", "Colosenses": "COL", "1 Tesalonicenses": "1TH", "2 Tesalonicenses": "2TH", "Proverbios": "PRO", "Eclesiastés": "ECC", "Salmo": "PSA", "Salmos": "PSA", "Hebreos": "HEB", "Santiago": "JAS" };
@@ -652,6 +642,10 @@
             
             const scrollContainer = document.getElementById('bible-text-display');
             if (scrollContainer) scrollContainer.scrollTop = 0;
+
+            // FIX: Liberamos el hilo principal por unos milisegundos para permitir
+            // que la animación CSS del modal fluya sin congelarse por el procesamiento pesado del texto.
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             const bookInfo = getBookInfo(readerState.dayNum);
             let rawText = bookCache[bookInfo.file];
