@@ -154,6 +154,23 @@
         .datepicker-grid .today-dot { position: relative; }
         .datepicker-grid .today-dot::after { content: ''; position: absolute; bottom: 4px; width: 4px; height: 4px; background: #007AFF; border-radius: 50%; }
         .italic-none { font-style: normal !important; }
+
+        /* Shimmer animation for AI & Reader loading */
+        .shimmer {
+            background: #f6f7f8;
+            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+            background-repeat: no-repeat;
+            background-size: 800px 100%; 
+            animation-duration: 1.5s;
+            animation-fill-mode: forwards; 
+            animation-iteration-count: infinite;
+            animation-name: placeholderShimmer;
+            animation-timing-function: linear;
+        }
+        @keyframes placeholderShimmer {
+            0% { background-position: -468px 0; }
+            100% { background-position: 468px 0; }
+        }
     </style>
 </head>
 <body class="min-h-screen text-ios-text">
@@ -289,28 +306,46 @@
     <!-- MODAL: LECTOR INTEGRADO (Biblia o EGW) -->
     <div id="modal-bible" class="fixed inset-0 z-[200] hidden flex items-end md:items-center justify-center p-0 md:p-6 text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
-        <div class="modal-content glass w-full max-w-3xl h-[94vh] md:h-[88vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden">
-            <div class="p-3 lg:p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
+        <div class="modal-content glass w-full max-w-3xl h-[94vh] md:h-[88vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden bg-ios-bg">
+            <!-- Header (Fijo) -->
+            <div class="p-3 lg:p-5 bg-white border-b border-gray-100 flex justify-between items-center shrink-0 z-10 shadow-sm">
                 <div class="flex items-center gap-3">
-                    <div id="reader-icon-container" class="w-10 h-10 bg-ios-blue/10 rounded-full flex items-center justify-center text-ios-blue">
-                        <i data-lucide="book-open" class="w-5 h-5"></i>
+                    <div id="reader-icon-container" class="w-8 h-8 lg:w-10 lg:h-10 bg-ios-blue/10 rounded-full flex items-center justify-center text-ios-blue">
+                        <i data-lucide="book-open" class="w-4 h-4 lg:w-5 lg:h-5"></i>
                     </div>
                     <div>
-                        <h4 class="text-base lg:text-lg font-bold italic-none leading-tight line-clamp-1" id="bible-modal-title">Cargando...</h4>
+                        <h4 class="text-sm lg:text-lg font-bold italic-none leading-tight line-clamp-1" id="bible-modal-title">Cargando...</h4>
                         <p class="text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase tracking-widest italic-none" id="bible-modal-subtitle">Lectura</p>
                     </div>
                 </div>
                 <button onclick="closeModals()" class="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"><i data-lucide="x" class="w-4 h-4 lg:w-5 lg:h-5"></i></button>
             </div>
-            <div id="reader-content-container" class="flex-1 relative overflow-hidden bg-white/40 text-left">
-                <div id="bible-skeleton" class="p-8 lg:p-10 space-y-4 animate-pulse text-left text-left">
-                    <div class="h-3 bg-gray-200 rounded w-3/4"></div>
-                    <div class="h-3 bg-gray-200 rounded w-full"></div>
-                    <div class="h-3 bg-gray-200 rounded w-5/6"></div>
+            
+            <!-- Contenedor del Texto y Barra Inferior -->
+            <div id="reader-content-container" class="flex-1 relative overflow-hidden bg-white flex flex-col text-left">
+                <!-- Zona Scrollable del Texto -->
+                <div id="bible-text-display" class="flex-1 overflow-y-auto p-5 lg:p-10 custom-scroll italic-none text-left pb-24">
+                    <!-- Skeleton Loader -->
+                    <div id="bible-skeleton" class="space-y-4 animate-pulse text-left hidden">
+                        <div class="shimmer h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div class="shimmer h-4 bg-gray-200 rounded w-full"></div>
+                        <div class="shimmer h-4 bg-gray-200 rounded w-5/6"></div>
+                        <div class="shimmer h-4 bg-gray-200 rounded w-1/2 mt-6"></div>
+                        <div class="shimmer h-4 bg-gray-200 rounded w-full"></div>
+                    </div>
+                    <div id="bible-actual-text"></div>
                 </div>
-                <div id="bible-text-display" class="hidden h-full overflow-y-auto p-5 lg:p-10 custom-scroll italic-none text-left"></div>
-                <!-- Iframe actualizado para carga segura y navegación interna -->
-                <iframe id="egw-frame" class="hidden w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+                
+                <!-- Footer Navegación Estilo Apple -->
+                <div id="reader-nav" class="shrink-0 bg-white/90 backdrop-blur-md border-t border-gray-200 p-2 lg:p-4 flex justify-between items-center absolute bottom-0 w-full z-10">
+                    <button id="reader-prev-btn" onclick="navigateReader(-1)" class="flex items-center gap-1.5 text-ios-blue font-semibold px-3 py-2 rounded-xl hover:bg-ios-blue/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs lg:text-sm">
+                        <i data-lucide="chevron-left" class="w-4 h-4 lg:w-5 lg:h-5"></i> Anterior
+                    </button>
+                    <span id="reader-day-indicator" class="text-[10px] lg:text-xs font-black text-ios-secondary uppercase tracking-widest">Día 1</span>
+                    <button id="reader-next-btn" onclick="navigateReader(1)" class="flex items-center gap-1.5 text-ios-blue font-semibold px-3 py-2 rounded-xl hover:bg-ios-blue/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs lg:text-sm">
+                        Siguiente <i data-lucide="chevron-right" class="w-4 h-4 lg:w-5 lg:h-5"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -327,19 +362,25 @@
                 <button onclick="closeModals()" class="w-8 h-8 lg:w-12 lg:h-12 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform text-center"><i data-lucide="x" class="w-4 h-4 lg:w-6 lg:h-6 text-center"></i></button>
             </div>
             <div class="p-4 lg:p-8 overflow-y-auto space-y-5 lg:space-y-6 pb-20 italic-none text-left">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-3 italic-none text-left text-left text-left" id="m-checks-container"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 lg:gap-3 italic-none text-left text-left text-left text-left" id="m-checks-container"></div>
                 <div class="space-y-4 italic-none text-left">
                     <div class="p-3 lg:p-6 bg-ios-blue/5 rounded-ios-lg border border-ios-blue/10 text-left">
-                        <div class="flex items-center gap-2 mb-1.5 text-ios-blue text-left">
-                            <i data-lucide="sunrise" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
-                            <h5 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest italic-none text-left">Oración de la Mañana</h5>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-2 text-ios-blue text-left">
+                                <i data-lucide="sunrise" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
+                                <h5 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest italic-none text-left">Oración de la Mañana</h5>
+                            </div>
+                            <button onclick="generatePrayer(currentOpenDayId, 'Mañana')" class="flex items-center gap-1 bg-white text-ios-blue text-[9px] lg:text-xs font-bold px-2 py-1 rounded-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-all active:scale-95">✨ Expandir</button>
                         </div>
                         <p id="m-text-m" class="text-xs lg:text-base text-gray-800 font-medium leading-relaxed italic-none text-left"></p>
                     </div>
                     <div class="p-3 lg:p-6 bg-ios-gold/5 rounded-ios-lg border border-ios-gold/10 text-left">
-                        <div class="flex items-center gap-2 mb-1.5 text-ios-gold text-left">
-                            <i data-lucide="sunset" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
-                            <h5 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest italic-none text-left">Oración de la Tarde</h5>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <div class="flex items-center gap-2 text-ios-gold text-left">
+                                <i data-lucide="sunset" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
+                                <h5 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest italic-none text-left">Oración de la Tarde</h5>
+                            </div>
+                            <button onclick="generatePrayer(currentOpenDayId, 'Tarde')" class="flex items-center gap-1 bg-white text-ios-gold text-[9px] lg:text-xs font-bold px-2 py-1 rounded-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-all active:scale-95">✨ Expandir</button>
                         </div>
                         <p id="m-text-t" class="text-xs lg:text-base text-gray-800 font-medium leading-relaxed italic-none text-left"></p>
                     </div>
@@ -348,8 +389,41 @@
         </div>
     </div>
 
+    <!-- MODAL: AI GENERATION -->
+    <div id="modal-ai" class="fixed inset-0 z-[300] hidden flex items-end md:items-center justify-center p-0 md:p-6 text-left">
+        <div class="modal-overlay absolute inset-0" onclick="closeAIModal()"></div>
+        <div class="modal-content glass w-full max-w-3xl h-[85vh] md:h-auto md:max-h-[85vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden text-left bg-gradient-to-br from-white to-blue-50/50">
+            <div class="p-4 lg:p-6 border-b border-gray-100 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-tr from-purple-500 to-ios-blue rounded-full flex items-center justify-center text-white shadow-sm">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-bold italic-none leading-tight" id="ai-modal-title">Asistente Espiritual</h4>
+                        <p class="text-[9px] lg:text-[10px] font-black text-ios-secondary uppercase tracking-widest italic-none" id="ai-modal-subtitle">Generado por IA</p>
+                    </div>
+                </div>
+                <button onclick="closeAIModal()" class="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"><i data-lucide="x" class="w-4 h-4 lg:w-5 lg:h-5"></i></button>
+            </div>
+            <div id="ai-content-container" class="flex-1 relative overflow-y-auto p-6 lg:p-10 custom-scroll text-left">
+                <!-- Skeleton Loader for AI -->
+                <div id="ai-skeleton" class="space-y-4">
+                    <div class="shimmer h-4 rounded w-3/4"></div>
+                    <div class="shimmer h-4 rounded w-full"></div>
+                    <div class="shimmer h-4 rounded w-full"></div>
+                    <div class="shimmer h-4 rounded w-5/6"></div>
+                    <div class="shimmer h-4 rounded w-1/2 mt-6"></div>
+                    <div class="shimmer h-4 rounded w-full"></div>
+                    <div class="shimmer h-4 rounded w-4/5"></div>
+                </div>
+                <!-- AI Output Text -->
+                <div id="ai-text-display" class="hidden text-ios-text text-sm lg:text-base leading-relaxed space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: CONFIGURACIÓN -->
-    <div id="modal-config" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 text-left text-left text-left text-left">
+    <div id="modal-config" class="fixed inset-0 z-[120] hidden flex items-center justify-center p-4 text-left text-left text-left text-left text-left text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
         <div class="glass w-full max-w-md p-5 lg:p-8 rounded-ios-lg shadow-2xl relative text-left">
             <h3 class="text-lg lg:text-2xl font-bold w-full text-center mb-4 lg:mb-6 italic-none text-center">Configuración</h3>
@@ -360,21 +434,21 @@
                     <input type="text" id="cfg-name" placeholder="Escribe tu nombre" class="w-full bg-white p-2.5 lg:p-4 rounded-2xl border border-gray-200 outline-none font-medium italic-none text-xs lg:text-sm shadow-sm text-left">
                 </div>
                 <div>
-                    <label class="block text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase mb-1.5 ml-2 text-center italic-none text-left text-left text-left text-left text-left">Fecha de Inicio</label>
-                    <div id="custom-calendar-widget" class="p-2.5 lg:p-4 bg-white rounded-ios border border-gray-100 shadow-sm italic-none text-left text-left text-left text-left text-ios-text">
+                    <label class="block text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase mb-1.5 ml-2 text-center italic-none text-left text-left text-left text-left text-left text-left">Fecha de Inicio</label>
+                    <div id="custom-calendar-widget" class="p-2.5 lg:p-4 bg-white rounded-ios border border-gray-100 shadow-sm italic-none text-left text-left text-left text-left text-left text-ios-text">
                         <div class="flex justify-between items-center mb-2 px-1 text-ios-text text-left">
-                            <span id="cal-month-year" class="font-bold text-[10px] lg:text-xs uppercase text-left text-left text-left text-left"></span>
+                            <span id="cal-month-year" class="font-bold text-[10px] lg:text-xs uppercase text-left text-left text-left text-left text-left"></span>
                             <div class="flex gap-1.5 lg:gap-2 text-left">
                                 <button onclick="changeCalMonth(-1)" class="p-1 text-ios-blue"><i data-lucide="chevron-left" class="w-3 h-3 lg:w-3.5 lg:h-3.5"></i></button>
                                 <button onclick="changeCalMonth(1)" class="p-1 text-ios-blue"><i data-lucide="chevron-right" class="w-3 h-3 lg:w-3.5 lg:h-3.5"></i></button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-7 text-center mb-1.5 lg:mb-2 text-[7px] lg:text-[8px] font-black text-ios-secondary text-center text-center text-center">
+                        <div class="grid grid-cols-7 text-center mb-1.5 lg:mb-2 text-[7px] lg:text-[8px] font-black text-ios-secondary text-center text-center text-center text-center">
                             <div>DO</div><div>LU</div><div>MA</div><div>MI</div><div>JU</div><div>VI</div><div>SA</div>
                         </div>
-                        <div id="cal-days-grid" class="datepicker-grid grid grid-cols-7 gap-0 italic-none text-[10px] lg:text-xs text-center text-center text-center text-center"></div>
-                        <div class="mt-2.5 pt-1.5 border-t border-gray-50 flex justify-center italic-none text-center text-center text-center text-center text-center">
-                            <span id="display-date" class="text-[9px] lg:text-[10px] font-bold text-ios-blue italic-none text-center text-center text-center text-center">Sin fecha</span>
+                        <div id="cal-days-grid" class="datepicker-grid grid grid-cols-7 gap-0 italic-none text-[10px] lg:text-xs text-center text-center text-center text-center text-center"></div>
+                        <div class="mt-2.5 pt-1.5 border-t border-gray-50 flex justify-center italic-none text-center text-center text-center text-center text-center text-center">
+                            <span id="display-date" class="text-[9px] lg:text-[10px] font-bold text-ios-blue italic-none text-center text-center text-center text-center text-center">Sin fecha</span>
                         </div>
                     </div>
                 </div>
@@ -385,9 +459,9 @@
 
     <!-- SCRIPT ÚNICO Y ORDENADO PARA PREVENIR ERRORES -->
     <script>
-        // 1. DATOS MAESTROS (CARGAR PRIMERO)
+        // 1. DATOS MAESTROS
         const bibleBookCodes = { "Mateo": "MAT", "Marcos": "MRK", "Lucas": "LUK", "Juan": "JHN", "Hechos": "ACT", "Romanos": "ROM", "1 Corintios": "1CO", "2 Corintios": "2CO", "Gálatas": "GAL", "Efesios": "EPH", "Filipenses": "PHP", "Colosenses": "COL", "1 Tesalonicenses": "1TH", "2 Tesalonicenses": "2TH", "Proverbios": "PRO", "Eclesiastés": "ECC", "Salmo": "PSA", "Salmos": "PSA", "Hebreos": "HEB", "Santiago": "JAS" };
-        const esToEnBible = { "Mateo": "Matthew", "Marcos": "Mark", "Lucas": "Luke", "Juan": "John", "Hechos": "Acts", "Romanos": "Romans", "1 Corintios": "1 Corinthians", "2 Corintios": "2 Corinthians", "Gálatas": "Galatians", "Efesios": "Ephesians", "Filipenses": "Philippians", "Colosenses": "Colossians", "1 Tesalonicenses": "1 Thessalonians", "2 Tesalonicenses": "2 Thessalonians", "Proverbios": "Proverbs", "Eclesiastés": "Ecclesiastes", "Salmos": "Psalms", "Salmo": "Psalm", "Hebreos": "Hebrews", "Santiago": "James" };
+        
         const dtgList = ["Dios con nosotros", "El pueblo elegido", "El cumplimiento del tiempo", "Nace un Salvador", "La Visitación", "El astro de Jacob", "Como un niño", "Su bautismo", "La tentación", "La victoria", "Hemos hallado al Mesías", "En las bodas de Caná", "En su templo", "Nicodemo", "El debe crecer", "Junto al pozo de Jacob", "Si no viereis señales", "El estanque de Betesda", "Encarcelamiento y muerte de Juan", "El reino de Dios", "Sanidad de un paralítico", "Llamamiento de Mateo", "El sábado", "Ordenación de los doce", "El sermón del monte", "El centurión", "¿Quiénes son mis hermanos?", "Getsemaní", "Ante Anás y Caifás", "Judas"];
         const hapList = ["Pentecostés", "El poder del nombre", "Siete diáconos", "El primer mártir", "Evangelio en Samaria", "De perseguidor a discípulo", "Buscador de la verdad", "Librado de la cárcel", "El mensaje en Antioquía", "Heraldo del Evangelio", "Predicando entre gentiles", "Judíos y gentiles", "Exaltación de la cruz", "En las regiones lejanas", "Tesalónica", "Berea y Atenas", "Corinto", "Cartas a los Tesalonicenses", "Apolos en Corinto", "Éfeso", "Días de lucha", "Advertencia y ruego", "Llamamiento a mayor altura", "Mensaje escuchado", "Una iglesia liberal", "Labores posteriores", "El propósito de Dios", "Pablo preso", "Juicio en Cesarea", "Apelación a César"];
         const bibleRaw = [
@@ -405,8 +479,8 @@
         const motivesT = ["Ruega que la presencia de Dios llene cada rincón de tu oficina o local, ahuyentando el temor.","Pide sabiduría para aplicar los principios éticos del Sermón del Monte en tus negociaciones de esta semana.","Pide a Dios que toque el corazón de tus clientes actuales para que mantengan su lealtad y confianza en ti.","Ruega por protección contra críticas externas o estrategias malintencionadas de la competencia.","Pide discernimiento para identificar nuevas oportunidades de mercado que otros no están viendo.","Ora por la paz y unidad de tu familia; que la crisis no divida tu hogar.","Cultiva humildad para aceptar una dirección de Dios que quizás no esperabas para tu empresa.","Ora por vigilancia espiritual para no caer en ofertas de \"dinero fácil\" que no vienen de Dios.","Medita en el sacrificio de Cristo y confía en que si Él dio su vida, no te negará Su ayuda.","Pide sanidad para tu mente agotada por el estrés financiero; busca descanso real en Su palabra.","Ora para que tu equipo de trabajo sienta seguridad y esperanza a través de tu liderazgo espiritual.","Aprende a reconocer que Dios conoce tus necesidades básicas antes de que las pidas.","Ruega por sinceridad absoluta en tu oración; desnuda tu alma y tus cuentas bancarias ante Dios.","12 PM: Inicio de Ayuno Total. Pide que Dios te revele errores administrativos que debes corregir.","12 PM: Fin de Ayuno. Eleva una oración de gratitud por las respuestas que ya vienen en camino.","Rechaza firmemente cualquier atajo financiero dudoso que comprometa tu testimonio cristiano.","Pide que Dios abra los ojos de tus empleados para que vean el propósito espiritual del negocio.","Pide sabiduría para delegar responsabilidades y no cargar tú solo con todo el peso operativo.","Pide arrepentimiento sincero si has confiado más en tus habilidades que en la provisión divina.","Ora para ser fiel en el manejo de cada centavo que entra hoy, entendiendo que la fidelidad en lo poco precede a la abundancia.","Pide que el gozo de trabajar para Dios regrese a ti, eliminando la pesadez de la crisis.","Pide fortaleza espiritual para resistir la presión de los conbros y las deudas sin perder la paz.","Mantén la esperanza en que Dios hará lo imposible en tu situación financiera actual.","Ora por transparencia y valor al hablar con tus acreedores sobre tus compromisos de pago.","Comprométete a que, cuando llegue el éxito, toda la gloria y el testimonio sean para Dios.","Pide al Buen Pastor que te guíe por los senderos comerciales más seguros y rentables.","Enfócate en servir a tus clientes con amor cristiano, viendo el servicio como un ministerio.","12 PM: Inicio Ayuno Total. Pide la guía del Espíritu Santo para un cambio de estrategia.","12 PM: Fin de Ayuno. Alaba a Dios porque Él intercede por ti ante el Padre.","Espera con paciencia activa el poder y la respuesta que Dios ha prometido enviar.","Pide valor para dar testimonio de la bondad de Dios incluso cuando las cifras no son favorables.","Pide un corazón capaz de perdonar y soltar la amargura contra deudores morosos.","Ora para ser blanco de las \"señales\" que Dios pone en tu camino comercial.","Establece una disciplina inamovible de tiempo a solas con Dios antes de empezar a trabajar.","Canta alabanzas a Dios aunque te sientas \"encadenado\" por las deudas actuales.","Renuncia a cualquier \"ídolo\" (confianza en contactos, fama o dinero) que ocupe el lugar de Dios.","Pide consuelo y paz si has tenido que cerrar etapas o despedir personal debido a la crisis.","Mantén una postura de paz y dignidad ante cobros agresivos o reclamos injustos.","Confía en que, aunque haya \"naufragios\" temporales, Dios te llevará a tierra segura.","Humíllate ante Dios, reconociendo que Su justicia es mejor que tu propia planificación.","Renuncia al pecado de la queja y el desánimo; elige hablar palabras de fe.","12 PM: Inicio Ayuno Total. Pide sabiduría específica para una renegociación de deuda.","12 PM: Fin de Ayuno. Presenta tu negocio como un sacrificio vivo para Dios.","Pide paciencia y amor para guiar a tu equipo en este tiempo de incertidumbre.","Agradece nominalmente por cada colaborador o cliente fiel que Dios ha mantenido a tu lado.","Pide limpieza espiritual en tu negocio; elimina cualquier influencia o hábito tóxico.","Ora para que tus decisiones financieras no afecten negativamente el testimonio cristiano de otros.","Ruega por orden y armonía en tus reuniones de planificación o de ventas.","Ora para que cada talento de tu equipo se use para la gloria de Dios y el bien común.","Recibe el consuelo de Dios para manejar el dolor que produce la pérdida económica.","Declara que, aunque estés atribulado, no estás desesperado; la luz de Dios brilla en ti.","Ora para que cualquier arrepentimiento por errores pasados se transforme en acción positiva.","Derriba fortalezas mentales que te dicen que nunca saldrás de las deudas.","Haz un examen de conciencia profundo sobre tus motivaciones reales para querer prosperar.","Reclama las promesas de Abraham sobre tu vida y tu descendencia (y negocio).","12 PM: Inicio Ayuno Total. Siembra oraciones por el Espíritu para tu futuro comercial.","12 PM: Fin de Ayuno. Declara plenitud y suficiencia en la provisión divina.","Confía en que el Dios que inició esta buena obra empresarial la llevará a un término glorioso.","Declara con convicción: \"Todo lo puedo en Cristo que me fortalece\" ante cada factura pendiente.","Comprométete a realizar cada tarea, por pequeña que sea, como si la hicieras para el Señor.","Pide que tu trabajo nazca de una fe genuina y no de la desesperación por el dinero.","Aprende a encontrar motivos para agradecer, incluso en los días de pocas ventas.","Pide dignidad y fuerza para trabajar honestamente, evitando el ocio y la queja.","Renuncia conscientemente a apoyarte en tu propia lógica y prudencia comercial.","Pide sabiduría para no ser fiador de deudas ajenas y para trabajar con la diligencia de la hormiga.","Edifica tu empresa sobre los principios sólidos de la Palabra y no sobre arenas movedizas.","Pide labios veraces; que tu palabra sea garantía de confianza absoluta para tus clientes.","Busca el consejo de mentores espirituales y sabios antes de realizar grandes inversiones.","Entiende que la humildad precede a la honra; sirve con amor antes de buscar el beneficio.","12 PM: Inicio Ayuno Total. Suplica por una estrategia milagrosa para cancelar deudas antiguas.","12 PM: Fin de Ayuno. Pide visión para planificar el crecimiento de tu negocio a largo plazo.","Valora el consejo del amigo fiel y prepárate para \"afilar el hierro\" con otros empresarios.","Haz tuya la oración de Agur: pide sabiduría para manejar tanto la escasez como la abundancia.","Encuentra el sentido de propósito eterno en lo que haces hoy, más allá del beneficio material.","Cuida de no amar el dinero, sino de usarlo como una herramienta para el Reino de Dios.","Pide un espíritu paciente para tratar con proveedores y situaciones comerciales lentas.","Medita en la Ley de Dios día y noche; que sea el filtro de cada contrato que firmes.","Pide que el Ángel de Jehová acampe alrededor de tu negocio y lo proteja de todo mal.","Reconoce a Dios como tu pronto auxilio en las tribulaciones administrativas más agudas.","Clama por una sed renovada de la presencia de Dios que supere tus preocupaciones terrenales.","Bendice a Jehová por cada pequeño beneficio que has recibido durante este trimestre.","Siéntete como el monte Sión: inconmovible, porque tu confianza está puesta en el Señor.","Descansa en la omnisciencia de Dios; Él conoce tus deudas y tiene la solución preparada.","12 PM: Inicio Ayuno Total. Da gracias por la transformación de tu fe en estos 3 meses.","12 PM: Fin de Ayuno. Consagra los resultados de este plan a la voluntad de Dios.","Sujeta tu alma a la esperanza como un ancla segura en medio de la volatilidad del mercado.","No pierdas tu confianza; mantente firme porque el galardón de tu fe es grande.","Recuerda que el Dios que ayudó a los patriarcas es el mismo que ayudará a tu negocio hoy.","Demuestra tu fe con acciones concretas: mejora tus procesos y atiende con excelencia.","Declara la victoria final: la oración eficaz de un administrador justo tiene un poder inmenso."];
 
         // 2. ESTADO Y CONFIGURACIÓN INICIAL
-        let state = JSON.parse(localStorage.getItem('90dias_fe_v18')) || {};
-        let settings = JSON.parse(localStorage.getItem('90dias_cfg_v18')) || { name: "", startDate: "" };
+        let state = JSON.parse(localStorage.getItem('90dias_fe_v21')) || {};
+        let settings = JSON.parse(localStorage.getItem('90dias_cfg_v21')) || { name: "", startDate: "" };
         let currentMonthFilter = 1;
         let mainChart = null;
         let calCurrentDate = new Date();
@@ -418,6 +492,9 @@
 
         // --- SISTEMA DE LIBROS MÚLTIPLES (TXT OFFLINE) ---
         const bookCache = {};
+        
+        // Estado del lector actual para la navegación
+        let currentReaderDayNum = 1;
 
         function getBookInfo(day) {
             if (day <= 30) return { file: 'dtg.txt', type: 'chapter', val: day };
@@ -463,23 +540,19 @@
             let endIndex = text.length;
             
             if (info.type === 'chapter') {
-                // Buscamos todas las veces que dice "Capítulo X"
                 const regexCurrent = new RegExp('Cap[íi]tulo\\s+' + info.val + '(?!\\d)', 'gi');
                 const matchesCurrent = [...text.matchAll(regexCurrent)];
                 
-                // Buscamos todas las veces que dice el próximo capítulo
                 const regexNext = new RegExp('Cap[íi]tulo\\s+' + (info.val + 1) + '(?!\\d)', 'gi');
                 const matchesNext = [...text.matchAll(regexNext)];
 
                 if (matchesCurrent.length > 0) {
-                    startIndex = matchesCurrent[matchesCurrent.length - 1].index; // Fallback al último
+                    startIndex = matchesCurrent[matchesCurrent.length - 1].index; 
                     
                     for (let m of matchesCurrent) {
                         let nextM = matchesNext.find(n => n.index > m.index);
                         let distance = nextM ? (nextM.index - m.index) : (text.length - m.index);
                         
-                        // ELIMINA EL ÍNDICE: Si la distancia al siguiente capítulo es mayor a 1000 caracteres, 
-                        // sabemos con seguridad que es el cuerpo del texto y no una línea del índice.
                         if (distance > 1000) {
                             startIndex = m.index;
                             if (nextM) endIndex = nextM.index;
@@ -513,7 +586,6 @@
             let html = '';
             let currentP = '';
             
-            // Toma la primera línea como título (ignorando los números de página como [12])
             let title = lines.shift()?.trim().replace(/\[\d+\]/g, '') || 'Lectura de Hoy';
             html += `<h3 class="font-bold text-2xl mb-6 text-ios-blue leading-tight">${title}</h3>`;
             
@@ -527,7 +599,6 @@
                     currentP = line;
                 }
                 
-                // Cierra el párrafo si termina en un signo de puntuación o número de nota al pie
                 if (line.match(/[.?”!:»]\d*$/)) {
                     html += `<p class="bible-text-p text-gray-800 text-lg leading-relaxed mb-4 text-justify">${currentP}</p>`;
                     currentP = '';
@@ -587,6 +658,94 @@
             return lates;
         }
 
+        // --- GEMINI API INTEGRATION ---
+        async function callGeminiAPI(prompt) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            
+            let retries = 5;
+            let delay = 1000;
+            
+            while (retries > 0) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error('API Error');
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) return "Lo siento, hubo un error de conexión con el Asistente IA. Por favor, intenta de nuevo más tarde.";
+                    await new Promise(res => setTimeout(res, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        function openAIModal(title) {
+            const modal = document.getElementById('modal-ai');
+            const skeleton = document.getElementById('ai-skeleton');
+            const textDisplay = document.getElementById('ai-text-display');
+            
+            document.getElementById('ai-modal-title').innerText = title;
+            textDisplay.innerHTML = "";
+            textDisplay.classList.add('hidden');
+            skeleton.classList.remove('hidden');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('modal-active'), 10);
+        }
+
+        function closeAIModal() {
+            const modal = document.getElementById('modal-ai');
+            modal.classList.remove('modal-active');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        async function generatePrayer(dayId, timeOfDay) {
+            const day = planData.find(d => d.id === dayId);
+            const motive = timeOfDay === 'Mañana' ? day.m : day.t;
+            
+            openAIModal(`Oración Guiada (${timeOfDay})`);
+            
+            const prompt = `Eres un consejero espiritual compasivo. Basado en esta breve intención de oración: '${motive}', escribe una oración guiada, sincera y profunda (máximo 3 párrafos cortos) que un profesional cristiano pueda elevar a Dios en la ${timeOfDay}. Mantén un tono devocional y esperanzador. Responde directamente con el texto de la oración, sin saludos ni introducciones.`;
+            
+            const responseText = await callGeminiAPI(prompt);
+            
+            const formattedText = responseText.split('\n\n').map(p => `<p>${p}</p>`).join('');
+            
+            document.getElementById('ai-skeleton').classList.add('hidden');
+            const display = document.getElementById('ai-text-display');
+            display.innerHTML = formattedText;
+            display.classList.remove('hidden');
+        }
+
+        async function generateDailyReflection(dayId) {
+            const day = planData.find(d => d.id === dayId);
+            
+            openAIModal("Reflexión del Día ✨");
+            
+            const prompt = `Actúa como un sabio mentor espiritual para un emprendedor o profesional cristiano. Hoy es el Día ${day.number} de un plan de fe de 90 días. La lectura bíblica es ${day.bible}, la lectura de apoyo es ${day.egw}, y los enfoques de oración de hoy son: '${day.m}' y '${day.t}'. 
+            Escribe una reflexión poderosa e inspiradora (máximo 3 párrafos cortos) conectando estos temas para animar su vida espiritual y decisiones laborales hoy. Termina con un breve consejo práctico. Responde directamente con el texto.`;
+            
+            const responseText = await callGeminiAPI(prompt);
+            
+            const formattedText = responseText.split('\n').filter(p => p.trim() !== '').map(p => {
+                let htmlP = p.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                return `<p>${htmlP}</p>`;
+            }).join('');
+            
+            document.getElementById('ai-skeleton').classList.add('hidden');
+            const display = document.getElementById('ai-text-display');
+            display.innerHTML = formattedText;
+            display.classList.remove('hidden');
+        }
+
         // 4. FUNCIONES DEL LECTOR
         function getBibleLink(bibleStr) {
             const firstPart = bibleStr.split(',')[0].split(/[–-]/)[0].trim();
@@ -594,81 +753,84 @@
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
-        async function openReader(ref, isBible = true, dayNum = 0) {
+        // Apertura principal del Lector EGW
+        async function openReader(ref, dayNum = 1) {
             const modal = document.getElementById('modal-bible');
-            const skeleton = document.getElementById('bible-skeleton');
-            const bibleText = document.getElementById('bible-text-display');
+            
+            // Asigna estado de lectura
+            currentReaderDayNum = dayNum;
             
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('modal-active'), 10);
             
+            await loadReaderContent();
+        }
+
+        // Cargador centralizado de lectura (permite navegación)
+        async function loadReaderContent() {
+            const skeleton = document.getElementById('bible-skeleton');
+            const bibleText = document.getElementById('bible-actual-text');
+            const dayInfo = planData.find(d => d.number === currentReaderDayNum);
+            
+            if (!dayInfo) return;
+            
+            const ref = dayInfo.egw;
+            
+            // Actualizar Interfaz
+            document.getElementById('bible-modal-title').innerText = ref;
+            document.getElementById('reader-day-indicator').innerText = `Día ${currentReaderDayNum}`;
+            document.getElementById('reader-prev-btn').disabled = currentReaderDayNum <= 1;
+            document.getElementById('reader-next-btn').disabled = currentReaderDayNum >= 90;
+            
             skeleton.classList.remove('hidden');
             bibleText.classList.add('hidden');
-            document.getElementById('bible-modal-title').innerText = ref;
+            bibleText.innerHTML = ''; 
+            
+            // Resetear el scroll para la nueva lectura
+            const scrollContainer = document.getElementById('bible-text-display');
+            if (scrollContainer) scrollContainer.scrollTop = 0;
 
-            if (isBible) {
-                document.getElementById('bible-modal-subtitle').innerText = "Versión: Reina Valera 1909";
-                document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5"></i>';
-                lucide.createIcons();
+            document.getElementById('bible-modal-subtitle').innerText = "Biblioteca EGW (Modo Local)";
+            document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5 text-ios-gold"></i>';
+            lucide.createIcons();
+            
+            const bookInfo = getBookInfo(currentReaderDayNum);
+            let rawText = bookCache[bookInfo.file];
+            
+            if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
                 try {
-                    let cleanRef = ref.split(',')[0].split(/[–-]/)[0].trim();
-                    let apiRef = cleanRef;
-                    for (let key in esToEnBible) {
-                        if (cleanRef.startsWith(key)) {
-                            apiRef = cleanRef.replace(key, esToEnBible[key]);
-                            break;
-                        }
+                    const response = await fetch('./' + bookInfo.file);
+                    if (response.ok) {
+                        rawText = await response.text();
+                        bookCache[bookInfo.file] = rawText;
                     }
-                    const url = `https://bible-api.com/${encodeURIComponent(apiRef)}?translation=rvr09`;
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error('API Error');
-                    const data = await response.json();
-                    if (data.verses && data.verses.length > 0) {
-                        bibleText.innerHTML = data.verses.map(v => `<p class="bible-text-p italic-none text-left"><span class="bible-verse-num">${v.verse}</span>${v.text}</p>`).join('');
-                        bibleText.classList.remove('hidden');
-                    } else throw new Error('Empty');
-                } catch (e) {
-                    const link = getBibleLink(ref);
-                    bibleText.innerHTML = `<div class="text-center p-10 space-y-6 text-ios-text italic-none"><i data-lucide="wifi-off" class="w-12 h-12 mx-auto opacity-20"></i><p class="text-ios-secondary font-medium italic-none">No pudimos cargar el texto en la aplicación.</p><a href="${link}" target="_blank" class="inline-flex bg-ios-blue text-white px-6 py-3 rounded-full font-bold shadow-lg italic-none">Leer en Bible.com</a></div>`;
-                    bibleText.classList.remove('hidden');
-                    lucide.createIcons();
-                } finally { skeleton.classList.add('hidden'); }
+                } catch (error) {
+                    console.warn("Error cargando " + bookInfo.file, error);
+                }
+            }
+
+            if (!rawText) {
+                bibleText.innerHTML = `
+                    <div class="text-center p-10 space-y-6">
+                        <i data-lucide="file-warning" class="w-12 h-12 mx-auto opacity-20 text-ios-gold"></i>
+                        <p class="text-ios-secondary font-medium text-lg">Libro no encontrado.</p>
+                        <p class="text-ios-secondary text-sm">Sube tu archivo <b>${bookInfo.file}</b> a GitHub para poder leer este capítulo aquí.</p>
+                    </div>`;
             } else {
-                document.getElementById('bible-modal-subtitle').innerText = "Biblioteca EGW (Modo Local)";
-                document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5 text-ios-gold"></i>';
-                lucide.createIcons();
-                
-                const bookInfo = getBookInfo(dayNum);
-                
-                let rawText = bookCache[bookInfo.file];
-                
-                // Si estamos en la vista previa del editor, saltamos el fetch para evitar error de URL
-                if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
-                    try {
-                        const response = await fetch('./' + bookInfo.file);
-                        if (response.ok) {
-                            rawText = await response.text();
-                            bookCache[bookInfo.file] = rawText;
-                        }
-                    } catch (error) {
-                        console.warn("Error cargando " + bookInfo.file, error);
-                    }
-                }
+                bibleText.innerHTML = parseEgwText(rawText, bookInfo);
+            }
 
-                if (!rawText) {
-                    bibleText.innerHTML = `
-                        <div class="text-center p-10 space-y-6">
-                            <i data-lucide="file-warning" class="w-12 h-12 mx-auto opacity-20 text-ios-gold"></i>
-                            <p class="text-ios-secondary font-medium text-lg">Libro no encontrado.</p>
-                            <p class="text-ios-secondary text-sm">Sube tu archivo <b>${bookInfo.file}</b> a GitHub para poder leer este capítulo aquí.</p>
-                        </div>`;
-                } else {
-                    bibleText.innerHTML = parseEgwText(rawText, bookInfo);
-                }
+            skeleton.classList.add('hidden');
+            bibleText.classList.remove('hidden');
+            lucide.createIcons();
+        }
 
-                skeleton.classList.add('hidden');
-                bibleText.classList.remove('hidden');
-                lucide.createIcons();
+        // Navegación estilo Apple
+        function navigateReader(direction) {
+            let newDay = currentReaderDayNum + direction;
+            if (newDay >= 1 && newDay <= 90) {
+                currentReaderDayNum = newDay;
+                loadReaderContent();
             }
         }
 
@@ -708,25 +870,58 @@
                         <div><span class="bg-ios-blue text-white px-2.5 py-0.5 rounded-full text-[8px] lg:text-[10px] font-black uppercase tracking-widest italic-none">Hoy</span><h3 class="text-2xl lg:text-4xl font-black mt-1 italic-none">Día ${day.number}</h3></div>
                         ${day.isFasting ? '<i data-lucide="star" class="w-6 h-6 lg:w-10 lg:h-10 text-ios-gold fill-ios-gold"></i>' : '<i data-lucide="sun" class="w-6 h-6 lg:w-10 lg:h-10 text-ios-blue opacity-10"></i>'}
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-8 text-ios-text italic-none">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 lg:gap-8 text-ios-text italic-none mb-6">
                         <div class="space-y-1.5 lg:space-y-3 italic-none">
                             <p class="text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase mb-0.5 tracking-widest italic-none">Seguimiento</p>
                             ${renderCheckItem(day.id, 'bible', `Lectura: ${day.bible}`, progress.bible, 'book-open', day.bible, true, day.number)}
-                            ${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'scroll-text', day.egw, false, day.number)}
+                            ${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'book-open', day.egw, false, day.number)}
                             ${renderCheckItem(day.id, 'pm', `Oración Mañana`, progress.pm, 'sunrise')}
                             ${renderCheckItem(day.id, 'pt', `Oración Tarde`, progress.pt, 'sunset')}
                         </div>
                         <div class="bg-ios-bg/40 p-3 lg:p-6 rounded-ios-lg border border-gray-100 space-y-3 lg:space-y-6 italic-none text-left">
-                            <div><div class="flex items-center gap-1.5 mb-1 text-ios-blue"><i data-lucide="sunrise" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i><h4 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest text-left">Oración Mañana</h4></div><p class="text-[11px] lg:text-sm font-medium leading-tight italic-none text-left">${day.m}</p></div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-1.5 text-ios-blue">
+                                        <i data-lucide="sunrise" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
+                                        <h4 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest text-left">Oración Mañana</h4>
+                                    </div>
+                                    <button onclick="generatePrayer('${day.id}', 'Mañana')" class="flex items-center gap-1 bg-white text-ios-blue text-[9px] lg:text-xs font-bold px-2 py-1 rounded-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-all active:scale-95">✨ Expandir</button>
+                                </div>
+                                <p class="text-[11px] lg:text-sm font-medium leading-tight italic-none text-left">${day.m}</p>
+                            </div>
                             <hr class="border-gray-200">
-                            <div><div class="flex items-center gap-1.5 mb-1 text-ios-gold"><i data-lucide="sunset" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i><h4 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest text-left">Oración Tarde</h4></div><p class="text-[11px] lg:text-sm font-medium leading-tight italic-none text-left">${day.t}</p></div>
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <div class="flex items-center gap-1.5 text-ios-gold">
+                                        <i data-lucide="sunset" class="w-3.5 h-3.5 lg:w-4 lg:h-4"></i>
+                                        <h4 class="text-[8px] lg:text-[10px] font-black uppercase tracking-widest text-left">Oración Tarde</h4>
+                                    </div>
+                                    <button onclick="generatePrayer('${day.id}', 'Tarde')" class="flex items-center gap-1 bg-white text-ios-gold text-[9px] lg:text-xs font-bold px-2 py-1 rounded-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-all active:scale-95">✨ Expandir</button>
+                                </div>
+                                <p class="text-[11px] lg:text-sm font-medium leading-tight italic-none text-left">${day.t}</p>
+                            </div>
                         </div>
                     </div>
+                    
+                    <!-- AI Daily Reflection Button -->
+                    <button onclick="generateDailyReflection('${day.id}')" class="w-full bg-gradient-to-r from-purple-500 to-ios-blue text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all text-sm lg:text-base">
+                        <i data-lucide="sparkles" class="w-4 h-4 lg:w-5 lg:h-5"></i> Reflexión del Día Generada por IA
+                    </button>
                 </div>`;
             lucide.createIcons();
         }
 
         function renderCheckItem(dayId, task, label, checked, icon, ref = null, isBible = true, dayNum = 0) {
+            let actionHtml = '';
+            if (ref) {
+                if (isBible) {
+                    const link = getBibleLink(ref);
+                    actionHtml = `<a href="${link}" target="_blank" onclick="event.stopPropagation();" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="external-link" class="w-4 h-4 text-ios-blue"></i></a>`;
+                } else {
+                    actionHtml = `<button onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
+                }
+            }
+
             return `
                 <div class="flex items-center gap-1 w-full italic-none text-left">
                     <label class="flex-1 flex items-center gap-2.5 cursor-pointer p-2 lg:p-4 rounded-xl lg:rounded-2xl bg-ios-bg/30 hover:bg-white transition-all border border-transparent hover:border-ios-blue/10 italic-none text-left">
@@ -736,7 +931,7 @@
                             <span class="text-[10px] lg:text-[13px] font-bold ${checked ? 'text-ios-secondary line-through' : 'text-ios-text'} italic-none text-left leading-tight">${label}</span>
                         </div>
                     </label>
-                    ${ref ? `<button onclick="event.stopPropagation(); openReader('${ref}', ${isBible}, ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm"><i data-lucide="${isBible ? 'external-link' : 'search'}" class="w-4 h-4 text-ios-blue"></i></button>` : ''}
+                    ${actionHtml}
                 </div>`;
         }
 
@@ -770,19 +965,23 @@
             lucide.createIcons();
         }
 
-        function saveProgress(id, t, v) { if(!state[id]) state[id] = {}; state[id][t] = v; localStorage.setItem('90dias_fe_v18', JSON.stringify(state)); refreshUI(); }
-        function saveSettings() { settings.name = document.getElementById('cfg-name').value; if(selectedDate) settings.startDate = selectedDate.toISOString().split('T')[0]; localStorage.setItem('90dias_cfg_v18', JSON.stringify(settings)); closeModals(); refreshUI(); }
+        function saveProgress(id, t, v) { if(!state[id]) state[id] = {}; state[id][t] = v; localStorage.setItem('90dias_fe_v21', JSON.stringify(state)); refreshUI(); }
+        function saveSettings() { settings.name = document.getElementById('cfg-name').value; if(selectedDate) settings.startDate = selectedDate.toISOString().split('T')[0]; localStorage.setItem('90dias_cfg_v21', JSON.stringify(settings)); closeModals(); refreshUI(); }
         function changeTab(t) { ['view-today', 'view-calendar', 'view-status'].forEach(id => document.getElementById(id).classList.add('hidden')); ['tab-today', 'tab-calendar', 'tab-status'].forEach(id => document.getElementById(id).classList.remove('nav-item-active', 'text-ios-text')); document.getElementById(`view-${t}`).classList.remove('hidden'); document.getElementById(`tab-${t}`).classList.add('nav-item-active', 'text-ios-text'); if(t === 'calendar') renderCalendar(); if(t === 'status') renderStatusView(); lucide.createIcons(); }
         function filterMonth(m) { currentMonthFilter = m; [1, 2, 3].forEach(i => { const b = document.getElementById(`mbtn-${i}`); b.className = `px-3 py-1 lg:px-5 lg:py-2 rounded-full text-[9px] lg:text-xs font-bold transition-all ${i === m ? 'bg-white shadow-sm text-ios-blue' : 'text-ios-secondary'}`; }); renderCalendar(); }
         function openConfig() { document.getElementById('cfg-name').value = settings.name; document.getElementById('modal-config').classList.remove('hidden'); renderCustomCalendar(); }
         
         function openDayModal(id) {
             const day = planData.find(d => d.id === id); const progress = state[id] || {};
+            currentOpenDayId = day.id;
+            
             document.getElementById('m-day-label').innerText = `Día ${day.number}`;
             document.getElementById('m-day-title').innerText = "Detalles";
             document.getElementById('m-text-m').innerText = day.m;
             document.getElementById('m-text-t').innerText = day.t;
-            document.getElementById('m-checks-container').innerHTML = `${renderCheckItem(day.id, 'bible', day.bible, progress.bible, 'book-open', day.bible, true, day.number)}${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'scroll-text', day.egw, false, day.number)}${renderCheckItem(day.id, 'pm', "Oración Mañana", progress.pm, 'sunrise')}${renderCheckItem(day.id, 'pt', "Oración Tarde", progress.pt, 'sunset')}`;
+            
+            document.getElementById('m-checks-container').innerHTML = `${renderCheckItem(day.id, 'bible', day.bible, progress.bible, 'book-open', day.bible, true, day.number)}${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'book-open', day.egw, false, day.number)}${renderCheckItem(day.id, 'pm', "Oración Mañana", progress.pm, 'sunrise')}${renderCheckItem(day.id, 'pt', "Oración Tarde", progress.pt, 'sunset')}`;
+            
             document.getElementById('modal-day').classList.remove('hidden');
             setTimeout(() => document.getElementById('modal-day').classList.add('modal-active'), 10);
             lucide.createIcons();
@@ -792,10 +991,11 @@
             document.getElementById('modal-config').classList.add('hidden');
             document.getElementById('modal-day').classList.remove('modal-active');
             document.getElementById('modal-bible').classList.remove('modal-active');
+
             setTimeout(() => {
                 document.getElementById('modal-day').classList.add('hidden');
                 document.getElementById('modal-bible').classList.add('hidden');
-                document.getElementById('egw-frame').src = "";
+                document.getElementById('bible-actual-text').innerHTML = ''; // Limpiar para no guardar el scroll
             }, 300);
         }
 
@@ -813,10 +1013,30 @@
 
         function changeCalMonth(dir) { calCurrentDate.setMonth(calCurrentDate.getMonth() + dir); renderCustomCalendar(); }
 
+        // --- CARGA INICIAL SILENCIOSA DEL LIBRO ---
+        async function loadEgwBook() {
+            // Prevenir error de fetch en la vista previa (origen blob:)
+            if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') {
+                console.log("Vista previa: el archivo libro.txt se cargará cuando subas la app a GitHub.");
+                return;
+            }
+            try {
+                const response = await fetch('./dtg.txt'); // Cambiamos a buscar dtg.txt
+                if (response.ok) {
+                    bookCache['dtg.txt'] = await response.text();
+                } else {
+                    console.log("No se encontró el archivo dtg.txt. Súbelo a tu repositorio de GitHub.");
+                }
+            } catch (error) {
+                console.warn("Error intentando cargar dtg.txt localmente:", error);
+            }
+        }
+
         // 7. ARRANQUE
         window.onload = function() {
             if(!settings.startDate) openConfig();
             refreshUI();
+            loadEgwBook(); // Cargamos el libro en segundo plano
         };
     </script>
 </body>
