@@ -424,7 +424,7 @@
         let currentMonthFilter = 1;
         let mainChart = null;
         let calCurrentDate = new Date();
-        let selectedDate = settings.startDate ? new Date(settings.startDate) : null;
+        let selectedDate = settings.startDate ? new Date(settings.startDate.replace(/-/g, '/')) : null;
 
         // --- SISTEMA DE LIBROS MÚLTIPLES Y CACHÉ PRECARGADA ---
         const bookCache = {};
@@ -610,12 +610,12 @@
 
         function calculateCurrentDay() {
             if (!settings.startDate) return 1;
-            const start = new Date(settings.startDate);
+            const start = new Date(settings.startDate.replace(/-/g, '/'));
             start.setHours(0,0,0,0);
             const now = new Date();
             now.setHours(0,0,0,0);
             const diff = now - start;
-            return Math.min(Math.max(Math.floor(diff / (1000 * 60 * 60 * 24)) + 1, 1), 90);
+            return Math.min(Math.max(Math.round(diff / (1000 * 60 * 60 * 24)) + 1, 1), 90);
         }
 
         function checkLates() {
@@ -840,7 +840,7 @@
         }
 
         function saveProgress(id, t, v) { if(!state[id]) state[id] = {}; state[id][t] = v; localStorage.setItem('90dias_fe_v22', JSON.stringify(state)); refreshUI(); }
-        function saveSettings() { settings.name = document.getElementById('cfg-name').value; if(selectedDate) settings.startDate = selectedDate.toISOString().split('T')[0]; localStorage.setItem('90dias_cfg_v22', JSON.stringify(settings)); closeModals(); refreshUI(); }
+        function saveSettings() { settings.name = document.getElementById('cfg-name').value; if(selectedDate) settings.startDate = selectedDate.getFullYear() + '/' + (selectedDate.getMonth() + 1) + '/' + selectedDate.getDate(); localStorage.setItem('90dias_cfg_v22', JSON.stringify(settings)); closeModals(); refreshUI(); }
         function changeTab(t) { ['view-today', 'view-calendar', 'view-status'].forEach(id => document.getElementById(id).classList.add('hidden')); ['tab-today', 'tab-calendar', 'tab-status'].forEach(id => document.getElementById(id).classList.remove('nav-item-active', 'text-ios-text')); document.getElementById(`view-${t}`).classList.remove('hidden'); document.getElementById(`tab-${t}`).classList.add('nav-item-active', 'text-ios-text'); if(t === 'calendar') renderCalendar(); if(t === 'status') renderStatusView(); lucide.createIcons(); }
         function filterMonth(m) { currentMonthFilter = m; [1, 2, 3].forEach(i => { const b = document.getElementById(`mbtn-${i}`); b.className = `px-3 py-1 lg:px-5 lg:py-2 rounded-full text-[9px] lg:text-xs font-bold transition-all ${i === m ? 'bg-white shadow-sm text-ios-blue' : 'text-ios-secondary'}`; }); renderCalendar(); }
         function openConfig() { document.getElementById('cfg-name').value = settings.name; document.getElementById('modal-config').classList.remove('hidden'); renderCustomCalendar(); }
