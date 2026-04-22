@@ -677,9 +677,9 @@
 
             navBar.classList.remove('hidden');
 
-            // Habilitar la navegación fluida entre los días (capítulos) del plan
-            let hasPrev = readerState.currentIndex > 0 || readerState.dayNum > 1;
-            let hasNext = readerState.currentIndex < (readerState.chapters.length - 1) || readerState.dayNum < 90;
+            // Habilitar la navegación EXCLUSIVA para los capítulos del día seleccionado
+            let hasPrev = readerState.currentIndex > 0;
+            let hasNext = readerState.currentIndex < (readerState.chapters.length - 1);
 
             prevBtn.disabled = !hasPrev;
             nextBtn.disabled = !hasNext;
@@ -729,19 +729,10 @@
         function navigateReader(direction) {
             let newIndex = readerState.currentIndex + direction;
             
+            // Navegar SOLO entre los capítulos del día seleccionado
             if (newIndex >= 0 && newIndex < readerState.chapters.length) {
-                // Navegar entre capítulos del mismo día (si los hubiera)
                 readerState.currentIndex = newIndex;
                 loadReaderContent();
-            } else {
-                // Si no hay más capítulos en este día, saltar al día anterior/siguiente
-                let newDayNum = readerState.dayNum + direction;
-                if (newDayNum >= 1 && newDayNum <= 90) {
-                    const nextDayInfo = planData.find(d => d.number === newDayNum);
-                    if (nextDayInfo) {
-                        openReader(nextDayInfo.egw, false, newDayNum);
-                    }
-                }
             }
         }
 
