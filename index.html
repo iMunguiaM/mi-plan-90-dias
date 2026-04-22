@@ -627,18 +627,18 @@
             readerState.dayNum = dayNum;
             
             let chapters = [];
-            // Reconocimiento inteligente de capítulos múltiples o uno solo
-            let rangeMatch = ref.match(/(Cap[íi]tulos?|Cap\.)\s*(\d+)\s*[-–y]\s*(\d+)/i);
+            // Reconocimiento inteligente de capítulos múltiples o uno solo (ahora es más preciso)
+            let rangeMatch = ref.match(/(Cap[íi]tulos?|Cap\.)\s*(\d+)\s*(al?|-|–|y|&)\s*(\d+)/i);
             if (rangeMatch) {
                 let start = parseInt(rangeMatch[2]);
-                let end = parseInt(rangeMatch[3]);
+                let end = parseInt(rangeMatch[4]);
                 for (let i = start; i <= end; i++) {
-                    let info = getBookInfo(dayNum);
+                    let info = { ...getBookInfo(dayNum) };
                     info.val = i; 
                     chapters.push(info);
                 }
             } else {
-                chapters.push(getBookInfo(dayNum));
+                chapters.push({ ...getBookInfo(dayNum) });
             }
             
             readerState.chapters = chapters;
@@ -670,7 +670,9 @@
             document.getElementById('bible-modal-subtitle').innerText = "BIBLIOTECA EGW";
             document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5 text-ios-gold"></i>';
             
-            document.getElementById('reader-day-indicator').innerText = `Día ${readerState.dayNum}`;
+            // Mostrar también el capítulo exacto si el día tiene varios
+            document.getElementById('reader-day-indicator').innerText = readerState.chapters.length > 1 ? `Día ${readerState.dayNum} - Cap. ${bookInfo.val}` : `Día ${readerState.dayNum}`;
+            
             const navBar = document.getElementById('reader-nav');
             const prevBtn = document.getElementById('reader-prev-btn');
             const nextBtn = document.getElementById('reader-next-btn');
@@ -809,7 +811,8 @@
                     const link = getBibleLink(ref);
                     actionHtml = `<a href="${link}" target="_blank" onclick="event.stopPropagation();" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="external-link" class="w-4 h-4 text-ios-blue"></i></a>`;
                 } else {
-                    actionHtml = `<button id="reader-btn-${dayId}-${task}" onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
+                    // AQUÍ ESTABA EL ERROR: Faltaba pasar el parámetro 'false' indicando que no es la biblia, lo que hacía que el código recibiera el dayNum incorrecto.
+                    actionHtml = `<button id="reader-btn-${dayId}-${task}" onclick="event.stopPropagation(); openReader('${ref}', false, ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
                 }
             }
 
