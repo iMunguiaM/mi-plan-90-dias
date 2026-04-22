@@ -914,12 +914,7 @@
         function renderCheckItem(dayId, task, label, checked, icon, ref = null, isBible = true, dayNum = 0) {
             let actionHtml = '';
             if (ref) {
-                if (isBible) {
-                    const link = getBibleLink(ref);
-                    actionHtml = `<a href="${link}" target="_blank" onclick="event.stopPropagation();" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="external-link" class="w-4 h-4 text-ios-blue"></i></a>`;
-                } else {
-                    actionHtml = `<button onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
-                }
+                actionHtml = `<button onclick="event.stopPropagation(); openReader('${ref}', ${isBible}, ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
             }
 
             return `
