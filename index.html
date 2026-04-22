@@ -411,6 +411,119 @@
         let mainChart = null;
         let calCurrentDate = new Date();
         let selectedDate = settings.startDate ? new Date(settings.startDate) : null;
+        let currentOpenDayId = null;
+
+        // GEMINI API CONFIGURATION
+        const apiKey = ""; // Do not change, environment injected.
+
+        // --- SISTEMA DE LIBROS MÚLTIPLES (TXT OFFLINE) ---
+        const bookCache = {};
+
+        function getBookInfo(day) {
+            if (day <= 30) return { file: 'dtg.txt', type: 'chapter', val: day };
+            if (day <= 60) return { file: 'hap.txt', type: 'chapter', val: day - 30 + 3 };
+            
+            const m3 = {
+                61: { file: 'hap.txt', type: 'chapter', val: 32 },
+                62: { file: 'hap.txt', type: 'chapter', val: 33 },
+                63: { file: 'hap.txt', type: 'chapter', val: 34 },
+                64: { file: 'ed.txt', type: 'chapter', val: 1 },
+                65: { file: 'ed.txt', type: 'chapter', val: 2 },
+                66: { file: 'ed.txt', type: 'chapter', val: 3 },
+                67: { file: 'ed.txt', type: 'chapter', val: 4 },
+                68: { file: 'ed.txt', type: 'chapter', val: 5 },
+                69: { file: 'ed.txt', type: 'chapter', val: 6 },
+                70: { file: 'cv.txt', type: 'title', val: 'Sabiduría de Salomón' },
+                71: { file: 'cv.txt', type: 'title', val: 'Templo del Señor' },
+                72: { file: 'ed.txt', type: 'chapter', val: 7 },
+                73: { file: 'ed.txt', type: 'chapter', val: 8 },
+                74: { file: 'ed.txt', type: 'chapter', val: 9 },
+                75: { file: 'cv.txt', type: 'title', val: 'Cosecha' },
+                76: { file: 'ed.txt', type: 'chapter', val: 11 },
+                77: { file: 'ed.txt', type: 'chapter', val: 12 },
+                78: { file: 'cc.txt', type: 'chapter', val: 1 },
+                79: { file: 'cc.txt', type: 'chapter', val: 2 },
+                80: { file: 'cc.txt', type: 'chapter', val: 3 },
+                81: { file: 'cc.txt', type: 'chapter', val: 4 },
+                82: { file: 'cc.txt', type: 'chapter', val: 5 },
+                83: { file: 'cc.txt', type: 'chapter', val: 6 },
+                84: { file: 'cc.txt', type: 'chapter', val: 11 },
+                85: { file: 'cc.txt', type: 'chapter', val: 12 },
+                86: { file: 'hap.txt', type: 'chapter', val: 55 },
+                87: { file: 'hap.txt', type: 'chapter', val: 56 },
+                88: { file: 'hap.txt', type: 'chapter', val: 57 },
+                89: { file: 'hap.txt', type: 'chapter', val: 58 },
+                90: { file: 'hap.txt', type: 'chapter', val: 59 }
+            };
+            return m3[day] || { file: 'dtg.txt', type: 'chapter', val: 1 };
+        }
+
+        function parseEgwText(text, info) {
+            let startIndex = -1;
+            let endIndex = text.length;
+            
+            if (info.type === 'chapter') {
+                const regexCurrent = new RegExp('Cap[íi]tulo\\s+' + info.val + '(?=[—\\-–\\s\\r\\n])', 'i');
+                const matchCurrent = text.match(regexCurrent);
+                if (matchCurrent) {
+                    startIndex = matchCurrent.index;
+                    const regexNext = new RegExp('Cap[íi]tulo\\s+' + (info.val + 1) + '(?=[—\\-–\\s\\r\\n])', 'i');
+                    const matchNext = text.match(regexNext);
+                    if (matchNext && matchNext.index > startIndex) {
+                        endIndex = matchNext.index;
+                    }
+                }
+            } else {
+                const regexTitle = new RegExp(info.val, 'i');
+                const matchTitle = text.match(regexTitle);
+                if (matchTitle) {
+                    startIndex = matchTitle.index;
+                    const regexNext = new RegExp('Cap[íi]tulo\\s+\\d+', 'i');
+                    const matchNext = text.substring(startIndex + 50).match(regexNext);
+                    if (matchNext) {
+                        endIndex = startIndex + 50 + matchNext.index;
+                    }
+                }
+            }
+
+            if (startIndex === -1) {
+                return `<div class="text-center p-10 space-y-6">
+                            <i data-lucide="book-x" class="w-12 h-12 mx-auto opacity-20 text-ios-red"></i>
+                            <p class="text-ios-secondary font-medium text-lg">No pudimos encontrar el capítulo en el archivo.</p>
+                            <p class="text-ios-secondary text-sm">Asegúrate de que el archivo <b>${info.file}</b> contenga el texto del Capítulo o Tema correspondiente a este día.</p>
+                        </div>`;
+            }
+
+            let rawSection = text.substring(startIndex, endIndex).trim();
+            let lines = rawSection.split('\n');
+            let html = '';
+            let currentP = '';
+            
+            let title = lines.shift()?.trim().replace(/\[\d+\]/g, '') || 'Lectura de Hoy';
+            html += `<h3 class="font-bold text-2xl mb-6 text-ios-blue leading-tight">${title}</h3>`;
+            
+            lines.forEach(line => {
+                line = line.replace(/\[\d+\]/g, '').trim(); 
+                if (!line) return;
+                
+                if (currentP.length > 0) {
+                    currentP += ' ' + line;
+                } else {
+                    currentP = line;
+                }
+                
+                if (line.match(/[.?”!:»]\d*$/) || line.length < 50) {
+                    html += `<p class="bible-text-p text-gray-800 text-lg leading-relaxed mb-4 text-justify">${currentP}</p>`;
+                    currentP = '';
+                }
+            });
+            
+            if (currentP.length > 0) {
+                html += `<p class="bible-text-p text-gray-800 text-lg leading-relaxed mb-4 text-justify">${currentP}</p>`;
+            }
+            
+            return html;
+        }
 
         // 3. FUNCIONES DE GENERACIÓN Y LÓGICA
         function generatePlan() {
@@ -465,29 +578,16 @@
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
-        function getEGWLink(egwStr, dayNum) {
-            // Buscador Inteligente Oficial
-            // Esto asegura 100% que cargará el libro en español buscando su título exacto
-            let query = egwStr;
-            // Quitamos el texto secundario "Cap." o "Capítulo" para hacer la búsqueda más infalible
-            if(query.includes(":")) {
-                query = query.split(":")[1].trim(); // Busca el título del capítulo directamente
-            }
-            return `https://egwwritings.org/search?query="${encodeURIComponent(query)}"&lang=es`;
-        }
-
         async function openReader(ref, isBible = true, dayNum = 0) {
             const modal = document.getElementById('modal-bible');
             const skeleton = document.getElementById('bible-skeleton');
             const bibleText = document.getElementById('bible-text-display');
-            const egwFrame = document.getElementById('egw-frame');
             
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('modal-active'), 10);
             
             skeleton.classList.remove('hidden');
             bibleText.classList.add('hidden');
-            egwFrame.classList.add('hidden');
             document.getElementById('bible-modal-title').innerText = ref;
 
             if (isBible) {
@@ -518,11 +618,41 @@
                     lucide.createIcons();
                 } finally { skeleton.classList.add('hidden'); }
             } else {
-                document.getElementById('bible-modal-subtitle').innerText = "Toca el primer resultado para leer";
-                document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="search" class="w-5 h-5 text-ios-gold"></i>';
+                document.getElementById('bible-modal-subtitle').innerText = "Biblioteca EGW (Modo Local)";
+                document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5 text-ios-gold"></i>';
                 lucide.createIcons();
-                egwFrame.src = getEGWLink(ref, dayNum);
-                egwFrame.onload = () => { skeleton.classList.add('hidden'); egwFrame.classList.remove('hidden'); };
+                
+                const bookInfo = getBookInfo(dayNum);
+                
+                let rawText = bookCache[bookInfo.file];
+                
+                // Si estamos en la vista previa del editor, saltamos el fetch para evitar error de URL
+                if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
+                    try {
+                        const response = await fetch('./' + bookInfo.file);
+                        if (response.ok) {
+                            rawText = await response.text();
+                            bookCache[bookInfo.file] = rawText;
+                        }
+                    } catch (error) {
+                        console.warn("Error cargando " + bookInfo.file, error);
+                    }
+                }
+
+                if (!rawText) {
+                    bibleText.innerHTML = `
+                        <div class="text-center p-10 space-y-6">
+                            <i data-lucide="file-warning" class="w-12 h-12 mx-auto opacity-20 text-ios-gold"></i>
+                            <p class="text-ios-secondary font-medium text-lg">Libro no encontrado.</p>
+                            <p class="text-ios-secondary text-sm">Sube tu archivo <b>${bookInfo.file}</b> a GitHub para poder leer este capítulo aquí.</p>
+                        </div>`;
+                } else {
+                    bibleText.innerHTML = parseEgwText(rawText, bookInfo);
+                }
+
+                skeleton.classList.add('hidden');
+                bibleText.classList.remove('hidden');
+                lucide.createIcons();
             }
         }
 
@@ -667,7 +797,7 @@
 
         function changeCalMonth(dir) { calCurrentDate.setMonth(calCurrentDate.getMonth() + dir); renderCustomCalendar(); }
 
-        // 6. ARRANQUE
+        // 7. ARRANQUE
         window.onload = function() {
             if(!settings.startDate) openConfig();
             refreshUI();
