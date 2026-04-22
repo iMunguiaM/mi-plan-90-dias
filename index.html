@@ -463,14 +463,28 @@
             let endIndex = text.length;
             
             if (info.type === 'chapter') {
-                const regexCurrent = new RegExp('Cap[íi]tulo\\s+' + info.val + '(?=[—\\-–\\s\\r\\n])', 'i');
-                const matchCurrent = text.match(regexCurrent);
-                if (matchCurrent) {
-                    startIndex = matchCurrent.index;
-                    const regexNext = new RegExp('Cap[íi]tulo\\s+' + (info.val + 1) + '(?=[—\\-–\\s\\r\\n])', 'i');
-                    const matchNext = text.match(regexNext);
-                    if (matchNext && matchNext.index > startIndex) {
-                        endIndex = matchNext.index;
+                // Buscamos todas las veces que dice "Capítulo X"
+                const regexCurrent = new RegExp('Cap[íi]tulo\\s+' + info.val + '(?!\\d)', 'gi');
+                const matchesCurrent = [...text.matchAll(regexCurrent)];
+                
+                // Buscamos todas las veces que dice el próximo capítulo
+                const regexNext = new RegExp('Cap[íi]tulo\\s+' + (info.val + 1) + '(?!\\d)', 'gi');
+                const matchesNext = [...text.matchAll(regexNext)];
+
+                if (matchesCurrent.length > 0) {
+                    startIndex = matchesCurrent[matchesCurrent.length - 1].index; // Fallback al último
+                    
+                    for (let m of matchesCurrent) {
+                        let nextM = matchesNext.find(n => n.index > m.index);
+                        let distance = nextM ? (nextM.index - m.index) : (text.length - m.index);
+                        
+                        // ELIMINA EL ÍNDICE: Si la distancia al siguiente capítulo es mayor a 1000 caracteres, 
+                        // sabemos con seguridad que es el cuerpo del texto y no una línea del índice.
+                        if (distance > 1000) {
+                            startIndex = m.index;
+                            if (nextM) endIndex = nextM.index;
+                            break;
+                        }
                     }
                 }
             } else {
@@ -499,6 +513,7 @@
             let html = '';
             let currentP = '';
             
+            // Toma la primera línea como título (ignorando los números de página como [12])
             let title = lines.shift()?.trim().replace(/\[\d+\]/g, '') || 'Lectura de Hoy';
             html += `<h3 class="font-bold text-2xl mb-6 text-ios-blue leading-tight">${title}</h3>`;
             
@@ -512,7 +527,8 @@
                     currentP = line;
                 }
                 
-                if (line.match(/[.?”!:»]\d*$/) || line.length < 50) {
+                // Cierra el párrafo si termina en un signo de puntuación o número de nota al pie
+                if (line.match(/[.?”!:»]\d*$/)) {
                     html += `<p class="bible-text-p text-gray-800 text-lg leading-relaxed mb-4 text-justify">${currentP}</p>`;
                     currentP = '';
                 }
