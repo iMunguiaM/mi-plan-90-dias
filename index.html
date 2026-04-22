@@ -256,7 +256,7 @@
 
             <!-- VISTA: CRONOGRAMA -->
             <section id="view-calendar" class="hidden space-y-6 lg:space-y-8">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-ios-text">
                     <h3 class="text-xl lg:text-2xl font-bold italic-none text-left">Cronograma de 90 Días</h3>
                     <div class="flex bg-gray-200/40 p-1 rounded-full shrink-0">
                         <button onclick="filterMonth(1)" id="mbtn-1" class="px-4 py-1.5 lg:px-5 lg:py-2 rounded-full text-[10px] lg:text-xs font-bold transition-all bg-white shadow-sm text-ios-blue">Mes 1</button>
@@ -307,18 +307,21 @@
     <div id="modal-bible" class="fixed inset-0 z-[200] hidden flex items-end md:items-center justify-center p-0 md:p-6 text-left">
         <div class="modal-overlay absolute inset-0" onclick="closeModals()"></div>
         <div class="modal-content glass w-full max-w-3xl h-[94vh] md:h-[88vh] rounded-t-ios-lg md:rounded-ios-lg shadow-2xl relative flex flex-col overflow-hidden bg-ios-bg">
+            <!-- Header -->
             <div class="p-3 lg:p-5 bg-white border-b border-gray-100 flex justify-between items-center shrink-0 z-10 shadow-sm">
                 <div class="flex items-center gap-3">
                     <div id="reader-icon-container" class="w-10 h-10 bg-ios-blue/10 rounded-full flex items-center justify-center text-ios-blue">
                         <i data-lucide="book-open" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <h4 class="text-base lg:text-lg font-bold italic-none leading-tight line-clamp-1" id="bible-modal-title">Cargando...</h4>
-                        <p class="text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase tracking-widest italic-none" id="bible-modal-subtitle">Lectura</p>
+                        <h4 class="text-sm lg:text-lg font-bold italic-none leading-tight line-clamp-1" id="bible-modal-title">Cargando...</h4>
+                        <p class="text-[8px] lg:text-[10px] font-black text-ios-secondary uppercase tracking-widest italic-none" id="bible-modal-subtitle">BIBLIOTECA EGW</p>
                     </div>
                 </div>
                 <button onclick="closeModals()" class="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-full flex items-center justify-center active:scale-90 transition-transform"><i data-lucide="x" class="w-4 h-4 lg:w-5 lg:h-5"></i></button>
             </div>
+            
+            <!-- Contenedor del Texto -->
             <div id="reader-content-container" class="flex-1 relative overflow-hidden bg-white flex flex-col text-left">
                 <div id="bible-text-display" class="flex-1 overflow-y-auto p-5 lg:p-10 custom-scroll italic-none text-left pb-24">
                     <div id="bible-skeleton" class="space-y-4 animate-pulse text-left hidden">
@@ -331,9 +334,15 @@
                     <div id="bible-actual-text"></div>
                 </div>
                 
-                <!-- Footer Navegación Estilo Apple (Fijo, sin flechas porque es solo 1 capítulo EGW por día) -->
-                <div id="reader-nav" class="shrink-0 bg-white/90 backdrop-blur-md border-t border-gray-200 p-3 lg:p-4 flex justify-center items-center absolute bottom-0 w-full z-10 hidden">
-                    <span id="reader-day-indicator" class="text-xs lg:text-sm font-black text-ios-secondary uppercase tracking-widest text-center">Día 1</span>
+                <!-- Footer Navegación Estilo Apple -->
+                <div id="reader-nav" class="shrink-0 bg-white/90 backdrop-blur-md border-t border-gray-200 p-3 lg:p-4 flex justify-between items-center absolute bottom-0 w-full z-10 hidden">
+                    <button id="reader-prev-btn" onclick="navigateReader(-1)" class="flex items-center gap-1.5 text-ios-blue font-semibold px-3 py-2 rounded-xl hover:bg-ios-blue/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs lg:text-sm">
+                        <i data-lucide="chevron-left" class="w-4 h-4 lg:w-5 lg:h-5"></i> Anterior
+                    </button>
+                    <span id="reader-day-indicator" class="text-xs lg:text-sm font-black text-ios-secondary uppercase tracking-widest text-center flex-1">Día 1</span>
+                    <button id="reader-next-btn" onclick="navigateReader(1)" class="flex items-center gap-1.5 text-ios-blue font-semibold px-3 py-2 rounded-xl hover:bg-ios-blue/10 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed text-xs lg:text-sm">
+                        Siguiente <i data-lucide="chevron-right" class="w-4 h-4 lg:w-5 lg:h-5"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -443,7 +452,8 @@
         let readerState = {
             dayNum: 1,
             isBible: false,
-            chapters: []
+            chapters: [],
+            currentIndex: 0
         };
 
         function getBookInfo(day) {
@@ -503,7 +513,6 @@
                         let nextM = matchesNext.find(n => n.index > m.index);
                         let distance = nextM ? (nextM.index - m.index) : (text.length - m.index);
                         
-                        // ELIMINA EL ÍNDICE
                         if (distance > 1000) {
                             startIndex = m.index;
                             if (nextM) endIndex = nextM.index;
@@ -612,17 +621,40 @@
         // 4. FUNCIONES DEL LECTOR
         function getBibleLink(bibleStr) {
             const firstPart = bibleStr.split(',')[0].split(/[–-]/)[0].trim();
-            for (let book in bibleBookCodes) { if (firstPart.startsWith(book)) { const code = bibleBookCodes[book]; const chapMatch = firstPart.match(/\d+/); const chapter = chapMatch ? chapMatch[0] : "1"; return `https://www.bible.com/es/bible/149/${code}.${chapter}.RVR1960`; } }
+            for (let book in bibleBookCodes) { 
+                if (firstPart.startsWith(book)) { 
+                    const code = bibleBookCodes[book]; 
+                    const chapMatch = firstPart.match(/\d+/); 
+                    const chapter = chapMatch ? chapMatch[0] : "1"; 
+                    return `https://www.bible.com/es/bible/149/${code}.${chapter}.RVR1960`; 
+                } 
+            }
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
-        // Apertura exclusiva del Lector EGW (La Biblia ahora usa enlace externo)
-        async function openReader(ref, dayNum = 1) {
+        // Apertura principal del Lector
+        async function openReader(ref, isBible = true, dayNum = 1) {
             const modal = document.getElementById('modal-bible');
             
             readerState.dayNum = dayNum;
-            readerState.isBible = false;
-            readerState.chapters = [ref];
+            
+            let chapters = [];
+            // Reconocimiento inteligente de capítulos múltiples o uno solo
+            let rangeMatch = ref.match(/(Cap[íi]tulos?|Cap\.)\s*(\d+)\s*[-–y]\s*(\d+)/i);
+            if (rangeMatch) {
+                let start = parseInt(rangeMatch[2]);
+                let end = parseInt(rangeMatch[3]);
+                for (let i = start; i <= end; i++) {
+                    let info = getBookInfo(dayNum);
+                    info.val = i; 
+                    chapters.push(info);
+                }
+            } else {
+                chapters.push(getBookInfo(dayNum));
+            }
+            
+            readerState.chapters = chapters;
+            readerState.currentIndex = 0;
             
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.add('modal-active'), 10);
@@ -637,14 +669,37 @@
             
             if (!dayInfo) return;
             
-            const currentChapterName = readerState.chapters[0];
+            const bookInfo = readerState.chapters[readerState.currentIndex];
             
-            document.getElementById('bible-modal-title').innerText = currentChapterName;
-            document.getElementById('bible-modal-subtitle').innerText = "Biblioteca EGW (Modo Local)";
+            let titleText = "BIBLIOTECA EGW";
+            if(bookInfo.file === 'dtg.txt') titleText = "El Deseado de Todas las Gentes";
+            if(bookInfo.file === 'hap.txt') titleText = "Los Hechos de los Apóstoles";
+            if(bookInfo.file === 'ed.txt') titleText = "La Educación";
+            if(bookInfo.file === 'cc.txt') titleText = "El Camino a Cristo";
+            if(bookInfo.file === 'cv.txt') titleText = "Conflicto y Valor";
+
+            document.getElementById('bible-modal-title').innerText = titleText;
+            document.getElementById('bible-modal-subtitle').innerText = "BIBLIOTECA EGW";
             document.getElementById('reader-icon-container').innerHTML = '<i data-lucide="book-open" class="w-5 h-5 text-ios-gold"></i>';
             
             document.getElementById('reader-day-indicator').innerText = `Día ${readerState.dayNum}`;
-            document.getElementById('reader-nav').classList.remove('hidden');
+            const navBar = document.getElementById('reader-nav');
+            const prevBtn = document.getElementById('reader-prev-btn');
+            const nextBtn = document.getElementById('reader-next-btn');
+
+            navBar.classList.remove('hidden');
+
+            if (readerState.chapters.length > 1) {
+                prevBtn.disabled = readerState.currentIndex === 0;
+                nextBtn.disabled = readerState.currentIndex === (readerState.chapters.length - 1);
+                prevBtn.style.opacity = prevBtn.disabled ? "0.3" : "1";
+                nextBtn.style.opacity = nextBtn.disabled ? "0.3" : "1";
+            } else {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                prevBtn.style.opacity = "0.3";
+                nextBtn.style.opacity = "0.3";
+            }
             
             skeleton.classList.remove('hidden');
             bibleText.classList.add('hidden');
@@ -653,16 +708,13 @@
             const scrollContainer = document.getElementById('bible-text-display');
             if (scrollContainer) scrollContainer.scrollTop = 0;
 
-            const bookInfo = getBookInfo(readerState.dayNum);
             let rawText = bookCache[bookInfo.file];
             
             if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
                 try {
-                    // Agregamos parámetro nocache para que GitHub devuelva siempre la última versión y evitar HTMLs de 404
                     const response = await fetch('./' + bookInfo.file + '?nocache=' + new Date().getTime());
                     if (response.ok) {
                         const fetchedText = await response.text();
-                        // Comprobamos que github no haya devuelto una página web HTML por error
                         if (!fetchedText.toLowerCase().includes("<!doctype html")) {
                             rawText = fetchedText;
                             bookCache[bookInfo.file] = rawText;
@@ -687,6 +739,14 @@
             skeleton.classList.add('hidden');
             bibleText.classList.remove('hidden');
             lucide.createIcons();
+        }
+
+        function navigateReader(direction) {
+            let newIndex = readerState.currentIndex + direction;
+            if (newIndex >= 0 && newIndex < readerState.chapters.length) {
+                readerState.currentIndex = newIndex;
+                loadReaderContent();
+            }
         }
 
         // 5. FUNCIONES DE UI
@@ -762,7 +822,7 @@
                     const link = getBibleLink(ref);
                     actionHtml = `<a href="${link}" target="_blank" onclick="event.stopPropagation();" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="external-link" class="w-4 h-4 text-ios-blue"></i></a>`;
                 } else {
-                    actionHtml = `<button onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
+                    actionHtml = `<button id="reader-btn-${dayId}-${task}" onclick="event.stopPropagation(); openReader('${ref}', ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
                 }
             }
 
@@ -817,13 +877,19 @@
         
         function openDayModal(id) {
             const day = planData.find(d => d.id === id); const progress = state[id] || {};
+            currentOpenDayId = day.id;
             
             document.getElementById('m-day-label').innerText = `Día ${day.number}`;
             document.getElementById('m-day-title').innerText = "Detalles";
             document.getElementById('m-text-m').innerText = day.m;
             document.getElementById('m-text-t').innerText = day.t;
             
-            document.getElementById('m-checks-container').innerHTML = `${renderCheckItem(day.id, 'bible', day.bible, progress.bible, 'external-link', day.bible, true, day.number)}${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'book-open', day.egw, false, day.number)}${renderCheckItem(day.id, 'pm', "Oración Mañana", progress.pm, 'sunrise')}${renderCheckItem(day.id, 'pt', "Oración Tarde", progress.pt, 'sunset')}`;
+            document.getElementById('m-checks-container').innerHTML = `
+                ${renderCheckItem(day.id, 'bible', day.bible, progress.bible, 'external-link', day.bible, true, day.number)}
+                ${renderCheckItem(day.id, 'egw', day.egw, progress.egw, 'book-open', day.egw, false, day.number)}
+                ${renderCheckItem(day.id, 'pm', "Oración Mañana", progress.pm, 'sunrise')}
+                ${renderCheckItem(day.id, 'pt', "Oración Tarde", progress.pt, 'sunset')}
+            `;
             
             document.getElementById('modal-day').classList.remove('hidden');
             setTimeout(() => document.getElementById('modal-day').classList.add('modal-active'), 10);
@@ -860,7 +926,7 @@
         // --- CARGA INICIAL SILENCIOSA DEL LIBRO ---
         async function loadEgwBook() {
             if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') {
-                console.log("Vista previa: el archivo libro.txt se cargará cuando subas la app a GitHub.");
+                console.log("Vista previa: el archivo dtg.txt se cargará cuando subas la app a GitHub.");
                 return;
             }
             try {
