@@ -441,7 +441,6 @@
         let mainChart = null;
         let calCurrentDate = new Date();
         let selectedDate = settings.startDate ? new Date(settings.startDate) : null;
-        let currentOpenDayId = null;
 
         // --- SISTEMA DE LIBROS MÚLTIPLES (TXT OFFLINE) ---
         const bookCache = {};
@@ -456,12 +455,14 @@
 
         function getBibleChaptersArray(bibleStr) {
             const chapters = [];
+            // Limpieza básica de la cadena
             let cleanStr = bibleStr.replace(/\(.*?\)/g, '').trim();
             const parts = cleanStr.split(',');
             let currentBook = "";
 
             parts.forEach(part => {
                 part = part.trim();
+                // Regex para detectar libros (incluyendo los que empiezan con número) y su contenido
                 const match = part.match(/^(\d?\s*[a-zA-ZáéíóúÁÉÍÓÚñÑ]+)\s*(.*)/);
                 
                 if (match && match[2] && match[2].match(/\d/)) {
@@ -469,6 +470,7 @@
                     let chapStr = match[2].trim();
                     addChaptersToArray(currentBook, chapStr, chapters);
                 } else {
+                    // Si no detecta libro nuevo, asume el anterior
                     addChaptersToArray(currentBook, part, chapters);
                 }
             });
@@ -660,6 +662,7 @@
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
+        // Apertura principal del Lector Interno
         async function openReader(ref, isBible = true, dayNum = 1) {
             const modal = document.getElementById('modal-bible');
             
@@ -710,13 +713,10 @@
                 prevBtn.disabled = readerState.currentIndex === 0;
                 nextBtn.disabled = readerState.currentIndex === (readerState.chapters.length - 1);
             } else {
-                // Para EGW que suele ser un solo capítulo, mostramos la barra para mantener fija la leyenda "Día X" pero deshabilitamos botones
+                // Siempre mostramos la barra para que la etiqueta de "Día X" se mantenga visible y fija
                 navBar.classList.remove('hidden');
                 prevBtn.disabled = true;
                 nextBtn.disabled = true;
-                // Opcionalmente, puedes ocultar los botones de flecha completamente si solo hay 1 capítulo:
-                // prevBtn.style.visibility = 'hidden';
-                // nextBtn.style.visibility = 'hidden';
             }
             
             skeleton.classList.remove('hidden');
@@ -861,6 +861,7 @@
         function renderCheckItem(dayId, task, label, checked, icon, ref = null, isBible = true, dayNum = 0) {
             let actionHtml = '';
             if (ref) {
+                // Ambos tipos de lectura abren ahora el lector interno con navegación controlada
                 actionHtml = `<button onclick="event.stopPropagation(); openReader('${ref}', ${isBible}, ${dayNum});" class="p-2.5 bg-white border border-gray-100 rounded-xl active:scale-90 transition-transform shadow-sm flex items-center justify-center"><i data-lucide="book-open" class="w-4 h-4 text-ios-blue"></i></button>`;
             }
 
