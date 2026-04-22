@@ -426,8 +426,9 @@
         let calCurrentDate = new Date();
         let selectedDate = settings.startDate ? new Date(settings.startDate) : null;
 
-        // --- SISTEMA DE LIBROS MÚLTIPLES (TXT OFFLINE) ---
+        // --- SISTEMA DE LIBROS MÚLTIPLES Y CACHÉ PRECARGADA ---
         const bookCache = {};
+        const parsedChaptersCache = {}; // NUEVO: Guarda el HTML ya procesado por cada día
         
         // Estado del lector actual
         let readerState = {
@@ -475,6 +476,35 @@
             return m3[day] || { file: 'dtg.txt', type: 'chapter', val: 1 };
         }
 
+        // NUEVA FUNCIÓN: Descarga y parsea el capítulo silenciosamente en segundo plano
+        async function preloadChapter(dayNum) {
+            if (parsedChaptersCache[dayNum]) return; // Ya está precargado
+            const bookInfo = getBookInfo(dayNum);
+            let rawText = bookCache[bookInfo.file];
+            
+            if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
+                try {
+                    const response = await fetch('./' + bookInfo.file + '?nocache=' + new Date().getTime());
+                    if (response.ok) {
+                        const fetchedText = await response.text();
+                        if (!fetchedText.toLowerCase().includes("<!doctype html")) {
+                            rawText = fetchedText;
+                            bookCache[bookInfo.file] = rawText;
+                        }
+                    }
+                } catch (error) {
+                    console.warn("Error preloading " + bookInfo.file, error);
+                }
+            }
+            
+            if (rawText) {
+                // Parseamos con un ligero delay para que el hilo principal siga libre
+                setTimeout(() => {
+                    parsedChaptersCache[dayNum] = parseEgwText(rawText, bookInfo);
+                }, 500);
+            }
+        }
+
         function parseEgwText(text, info) {
             let startIndex = -1;
             let endIndex = text.length;
@@ -493,7 +523,6 @@
                         let nextM = matchesNext.find(n => n.index > m.index);
                         let distance = nextM ? (nextM.index - m.index) : (text.length - m.index);
                         
-                        // ELIMINA EL ÍNDICE
                         if (distance > 1000) {
                             startIndex = m.index;
                             if (nextM) endIndex = nextM.index;
@@ -606,7 +635,6 @@
             return "https://www.bible.com/es/bible/149/MAT.1.RVR1960";
         }
 
-        // Apertura exclusiva del Lector EGW (La Biblia ahora usa enlace externo)
         async function openReader(ref, dayNum = 1) {
             const modal = document.getElementById('modal-bible');
             
@@ -636,15 +664,23 @@
             document.getElementById('reader-day-indicator').innerText = `Día ${readerState.dayNum}`;
             document.getElementById('reader-nav').classList.remove('hidden');
             
+            const scrollContainer = document.getElementById('bible-text-display');
+            if (scrollContainer) scrollContainer.scrollTop = 0;
+
+            // MAGIA: Si el texto ya se parseó en segundo plano, lo muestra al instante
+            if (parsedChaptersCache[readerState.dayNum]) {
+                bibleText.innerHTML = parsedChaptersCache[readerState.dayNum];
+                skeleton.classList.add('hidden');
+                bibleText.classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            // Si por alguna razón clickeó hiper-rápido y no terminó de cargar, usa el método clásico
             skeleton.classList.remove('hidden');
             bibleText.classList.add('hidden');
             bibleText.innerHTML = ''; 
             
-            const scrollContainer = document.getElementById('bible-text-display');
-            if (scrollContainer) scrollContainer.scrollTop = 0;
-
-            // FIX: Liberamos el hilo principal por unos milisegundos para permitir
-            // que la animación CSS del modal fluya sin congelarse por el procesamiento pesado del texto.
             await new Promise(resolve => setTimeout(resolve, 300));
 
             const bookInfo = getBookInfo(readerState.dayNum);
@@ -652,11 +688,9 @@
             
             if (!rawText && window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
                 try {
-                    // Agregamos parámetro nocache para que GitHub devuelva siempre la última versión y evitar HTMLs de 404
                     const response = await fetch('./' + bookInfo.file + '?nocache=' + new Date().getTime());
                     if (response.ok) {
                         const fetchedText = await response.text();
-                        // Comprobamos que github no haya devuelto una página web HTML por error
                         if (!fetchedText.toLowerCase().includes("<!doctype html")) {
                             rawText = fetchedText;
                             bookCache[bookInfo.file] = rawText;
@@ -672,10 +706,12 @@
                     <div class="text-center p-10 space-y-6">
                         <i data-lucide="file-warning" class="w-12 h-12 mx-auto opacity-20 text-ios-gold"></i>
                         <p class="text-ios-secondary font-medium text-lg">Libro no encontrado.</p>
-                        <p class="text-ios-secondary text-sm">Sube tu archivo <b>${bookInfo.file}</b> a GitHub (todo en minúsculas) para poder leer este capítulo aquí. Recuerda respetar las mayúsculas y minúsculas.</p>
+                        <p class="text-ios-secondary text-sm">Sube tu archivo <b>${bookInfo.file}</b> a GitHub (todo en minúsculas) para poder leer este capítulo aquí.</p>
                     </div>`;
             } else {
-                bibleText.innerHTML = parseEgwText(rawText, bookInfo);
+                const html = parseEgwText(rawText, bookInfo);
+                parsedChaptersCache[readerState.dayNum] = html; // Se guarda para la próxima
+                bibleText.innerHTML = html;
             }
 
             skeleton.classList.add('hidden');
@@ -812,6 +848,9 @@
         function openDayModal(id) {
             const day = planData.find(d => d.id === id); const progress = state[id] || {};
             
+            // MAGIA 2: Si el usuario abre el modal de Detalles del Día, precargamos silenciosamente el capítulo
+            preloadChapter(day.number);
+            
             document.getElementById('m-day-label').innerText = `Día ${day.number}`;
             document.getElementById('m-day-title').innerText = "Detalles";
             document.getElementById('m-text-m').innerText = day.m;
@@ -851,30 +890,15 @@
 
         function changeCalMonth(dir) { calCurrentDate.setMonth(calCurrentDate.getMonth() + dir); renderCustomCalendar(); }
 
-        // --- CARGA INICIAL SILENCIOSA DEL LIBRO ---
-        async function loadEgwBook() {
-            if (window.location.protocol === 'blob:' || window.location.protocol === 'data:') {
-                console.log("Vista previa: el archivo libro.txt se cargará cuando subas la app a GitHub.");
-                return;
-            }
-            try {
-                const response = await fetch('./dtg.txt');
-                if (response.ok) {
-                    const fetchedText = await response.text();
-                    if (!fetchedText.toLowerCase().includes("<!doctype html")) {
-                        bookCache['dtg.txt'] = fetchedText;
-                    }
-                }
-            } catch (error) {
-                console.warn("Error intentando cargar dtg.txt localmente:", error);
-            }
-        }
-
         // 7. ARRANQUE
         window.onload = function() {
             if(!settings.startDate) openConfig();
             refreshUI();
-            loadEgwBook(); 
+            
+            // Iniciamos la precarga de "Hoy" con un ligero retraso para no afectar la animación inicial
+            setTimeout(() => {
+                preloadChapter(calculateCurrentDay());
+            }, 800);
         };
     </script>
 </body>
